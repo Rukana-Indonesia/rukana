@@ -8,11 +8,11 @@ const props = defineProps({
 })
 
 const variants = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700 focus-visible:outline-brand-600',
+  primary: 'bg-desa-dark-green text-white hover:bg-[#2a5030] focus-visible:outline-desa-dark-green',
   secondary:
-    'bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus-visible:outline-slate-400',
-  ghost: 'text-slate-600 hover:bg-slate-100 focus-visible:outline-slate-400',
-  danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:outline-red-600',
+    'bg-white text-desa-dark-green border border-desa-background hover:border-desa-dark-green hover:bg-desa-foreshadow focus-visible:outline-desa-dark-green',
+  ghost: 'text-desa-secondary hover:bg-desa-foreshadow hover:text-desa-dark-green',
+  danger: 'bg-desa-red text-white hover:bg-[#e8405f] focus-visible:outline-desa-red',
 }
 </script>
 
@@ -21,7 +21,7 @@ const variants = {
     :type="props.type"
     :disabled="props.disabled || props.loading"
     :class="[
-      'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition',
+      'inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl px-5 leading-5 font-medium transition-all duration-300',
       'focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
       variants[props.variant],
       props.block && 'w-full',
@@ -29,7 +29,7 @@ const variants = {
   >
     <svg
       v-if="props.loading"
-      class="size-4 animate-spin"
+      class="size-5 animate-spin"
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden="true"

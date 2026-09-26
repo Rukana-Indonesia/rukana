@@ -1,16 +1,37 @@
 @import 'tailwindcss';
 
+/* Palet dan tipografi mengikuti template "Desa Digital". */
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-sans:
+    'Lexend Deca', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  --color-brand-50: var(--color-emerald-50);
-  --color-brand-100: var(--color-emerald-100);
-  --color-brand-200: var(--color-emerald-200);
-  --color-brand-500: var(--color-emerald-500);
-  --color-brand-600: var(--color-emerald-600);
-  --color-brand-700: var(--color-emerald-700);
-  --color-brand-800: var(--color-emerald-800);
-  --color-brand-900: var(--color-emerald-900);
+  --color-desa-black: #001b1a;
+  --color-desa-secondary: #5a7a7e;
+  --color-desa-dark-green: #34613a;
+  --color-desa-soft-green: #8ebd55;
+  --color-desa-foreshadow: #f1fae6;
+  --color-desa-yellow: #fbad4a;
+  --color-desa-orange: #fa7139;
+  --color-desa-background: #f2f9f6;
+  --color-desa-blue: #005caa;
+  --color-desa-red: #ff5070;
+  --color-desa-grey: #dbdbdb;
+  --color-desa-lime: #deff6e;
+}
+
+@utility gradient-vertical {
+  background: linear-gradient(209.83deg, #89b854 1.15%, #042f2b 100%);
+}
+
+@utility gradient-horizontal {
+  background: linear-gradient(272.68deg, #89b854 0%, #042f2b 100%);
+}
+
+@utility hide-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer base {
@@ -19,6 +40,11 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-800 antialiased;
+    @apply bg-desa-background text-desa-black antialiased;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
   }
 }
