@@ -20,6 +20,12 @@ const router = createRouter({
       component: () => import('@/layouts/PublicLayout.vue'),
       children: [
         { path: '', name: 'home', component: () => import('@/views/public/HomeView.vue') },
+      ],
+    },
+    {
+      path: '/',
+      component: () => import('@/layouts/AuthLayout.vue'),
+      children: [
         {
           path: 'masuk',
           name: 'login',
@@ -43,7 +49,7 @@ const router = createRouter({
           path: '',
           name: 'dashboard',
           component: () => import('@/views/app/DashboardView.vue'),
-          meta: { active: true, title: 'Beranda' },
+          meta: { active: true, title: 'Dasbor' },
         },
         {
           path: 'menunggu-verifikasi',
