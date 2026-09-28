@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
+import AppLogo from '@/components/AppLogo.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -52,69 +53,87 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-sm px-4 py-10">
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Masuk</h1>
-    <p class="mt-1 text-sm text-slate-600">Gunakan nomor HP yang Anda daftarkan.</p>
+  <div class="flex flex-col gap-6">
+    <form
+      class="flex flex-col gap-8 rounded-3xl bg-white p-6 sm:p-8"
+      novalidate
+      @submit.prevent="submit"
+    >
+      <header class="flex flex-col items-center gap-6 sm:gap-8">
+        <RouterLink :to="{ name: 'home' }" aria-label="Rukana, ke beranda">
+          <AppLogo />
+        </RouterLink>
+        <div class="flex flex-col gap-2 text-center">
+          <h1 class="text-2xl leading-[30px] font-semibold">Halo🙌🏻, Selamat Datang!</h1>
+          <p class="leading-5 font-medium text-desa-secondary">
+            Masuk dengan nomor HP yang Anda daftarkan
+          </p>
+        </div>
+      </header>
 
-    <form class="mt-6 space-y-4" novalidate @submit.prevent="submit">
       <AppAlert v-if="message">{{ message }}</AppAlert>
 
-      <AppInput
-        v-model="form.phone"
-        label="Nomor HP"
-        type="tel"
-        inputmode="numeric"
-        autocomplete="tel"
-        placeholder="081234567890"
-        :error="errors.phone"
-        required
-      />
-      <AppInput
-        v-model="form.password"
-        label="Kata sandi"
-        type="password"
-        autocomplete="current-password"
-        :error="errors.password"
-        required
-      />
-
-      <label class="flex items-center gap-2 text-sm text-slate-600">
-        <input
-          v-model="form.remember"
-          type="checkbox"
-          class="size-4 rounded border-slate-300 accent-brand-600"
+      <section class="flex flex-col gap-6 sm:gap-8">
+        <AppInput
+          v-model="form.phone"
+          label="Nomor HP"
+          icon="call"
+          type="tel"
+          inputmode="numeric"
+          autocomplete="tel"
+          placeholder="081234567890"
+          :error="errors.phone"
+          required
         />
-        Ingat saya di perangkat ini
-      </label>
+        <AppInput
+          v-model="form.password"
+          label="Kata Sandi"
+          icon="key"
+          type="password"
+          autocomplete="current-password"
+          placeholder="Ketik kata sandi Anda"
+          :error="errors.password"
+          required
+        />
+        <label class="flex items-center gap-3 leading-5 font-medium text-desa-secondary">
+          <input
+            v-model="form.remember"
+            type="checkbox"
+            class="size-5 rounded accent-desa-dark-green"
+          />
+          Ingat saya di perangkat ini
+        </label>
+      </section>
 
-      <AppButton type="submit" block :loading="submitting">Masuk</AppButton>
+      <div class="flex flex-col gap-4">
+        <AppButton type="submit" block :loading="submitting">Masuk</AppButton>
+        <p class="text-center text-sm leading-5 text-desa-secondary">
+          Lupa kata sandi? Hubungi ketua RT atau operator desa untuk mengatur ulang.
+        </p>
+      </div>
     </form>
 
-    <p class="mt-4 text-sm text-slate-600">
-      Lupa kata sandi? Hubungi ketua RT atau operator desa untuk mengatur ulang.
-    </p>
-    <p class="mt-6 text-sm text-slate-600">
+    <p class="text-center leading-5 text-desa-secondary">
       Belum punya akun?
-      <RouterLink :to="{ name: 'register' }" class="font-semibold text-brand-700 hover:underline"
+      <RouterLink
+        :to="{ name: 'register' }"
+        class="font-semibold text-desa-dark-green hover:underline"
         >Daftar sebagai warga</RouterLink
       >
     </p>
 
-    <details
-      v-if="devAccounts.length"
-      class="mt-8 rounded-lg bg-amber-50 p-3 text-sm ring-1 ring-amber-200"
-    >
-      <summary class="cursor-pointer font-medium text-amber-900">
+    <details v-if="devAccounts.length" class="rounded-2xl bg-white p-4 text-sm">
+      <summary class="cursor-pointer font-medium text-desa-secondary">
         Akun dummy (mode pengembangan)
       </summary>
-      <ul class="mt-2 space-y-1">
+      <ul class="mt-3 flex flex-col gap-1">
         <li v-for="[label, phone] in devAccounts" :key="phone">
           <button
             type="button"
-            class="w-full rounded px-2 py-1 text-left text-amber-900 hover:bg-amber-100"
+            class="w-full rounded-xl px-3 py-2 text-left font-medium transition-all duration-300 hover:bg-desa-foreshadow hover:text-desa-dark-green"
             @click="useDevAccount(phone)"
           >
-            {{ label }} <span class="text-amber-700">· {{ phone }}</span>
+            {{ label }} <span class="text-desa-secondary">· {{ phone }}</span>
           </button>
         </li>
       </ul>

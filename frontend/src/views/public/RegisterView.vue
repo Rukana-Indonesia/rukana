@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
+import AppLogo from '@/components/AppLogo.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -80,114 +81,134 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md px-4 py-10">
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Daftar sebagai warga</h1>
-    <p class="mt-1 text-sm text-slate-600">
-      <template v-if="village">Desa {{ village.name }}. </template>Setelah mendaftar, ketua RT Anda
-      akan memverifikasi bahwa Anda tinggal di RT tersebut.
-    </p>
+  <div class="flex flex-col gap-6">
+    <form
+      class="flex flex-col gap-8 rounded-3xl bg-white p-6 sm:p-8"
+      novalidate
+      @submit.prevent="submit"
+    >
+      <header class="flex flex-col items-center gap-6 sm:gap-8">
+        <RouterLink :to="{ name: 'home' }" aria-label="Rukana, ke beranda">
+          <AppLogo />
+        </RouterLink>
+        <div class="flex flex-col gap-2 text-center">
+          <h1 class="text-2xl leading-[30px] font-semibold">Daftar sebagai Warga</h1>
+          <p class="leading-5 font-medium text-desa-secondary">
+            <template v-if="village">Desa {{ village.name }}. </template>Ketua RT akan memverifikasi
+            bahwa Anda tinggal di RT tersebut.
+          </p>
+        </div>
+      </header>
 
-    <AppAlert v-if="regionsError" class="mt-6">{{ regionsError }}</AppAlert>
-
-    <form class="mt-6 space-y-4" novalidate @submit.prevent="submit">
+      <AppAlert v-if="regionsError">{{ regionsError }}</AppAlert>
       <AppAlert v-if="message">{{ message }}</AppAlert>
 
-      <AppInput
-        v-model="form.name"
-        label="Nama lengkap"
-        autocomplete="name"
-        maxlength="100"
-        :error="errors.name"
-        required
-      />
-      <AppInput
-        v-model="form.phone"
-        label="Nomor HP"
-        type="tel"
-        inputmode="numeric"
-        autocomplete="tel"
-        placeholder="081234567890"
-        hint="Dipakai untuk masuk. Tidak ada kode OTP."
-        :error="errors.phone"
-        required
-      />
-
-      <div class="grid grid-cols-2 gap-3">
-        <AppSelect
-          v-model="form.rw_id"
-          label="RW"
-          :options="rwOptions"
-          placeholder="Pilih RW"
-          :disabled="!village"
-          :error="errors.rw_id"
+      <section class="flex flex-col gap-6">
+        <AppInput
+          v-model="form.name"
+          label="Nama Lengkap"
+          icon="user"
+          autocomplete="name"
+          maxlength="100"
+          placeholder="Nama sesuai KTP"
+          :error="errors.name"
           required
         />
-        <AppSelect
-          v-model="form.rt_id"
-          label="RT"
-          :options="rtOptions"
-          placeholder="Pilih RT"
-          :disabled="!form.rw_id"
-          :error="errors.rt_id"
+        <AppInput
+          v-model="form.phone"
+          label="Nomor HP"
+          icon="call"
+          type="tel"
+          inputmode="numeric"
+          autocomplete="tel"
+          placeholder="081234567890"
+          hint="Dipakai untuk masuk. Tidak ada kode OTP."
+          :error="errors.phone"
           required
         />
-      </div>
 
-      <fieldset>
-        <legend class="mb-1.5 text-sm font-medium text-slate-700">Status tinggal</legend>
-        <div class="grid grid-cols-3 gap-2">
-          <label
-            v-for="opt in residencyOptions"
-            :key="opt.value"
-            :class="[
-              'flex min-h-11 cursor-pointer items-center justify-center rounded-lg border text-sm font-medium',
-              form.residency_status === opt.value
-                ? 'border-brand-600 bg-brand-50 text-brand-800'
-                : 'border-slate-300 bg-white text-slate-700',
-            ]"
-          >
-            <input
-              v-model="form.residency_status"
-              type="radio"
-              :value="opt.value"
-              class="sr-only"
-            />
-            {{ opt.label }}
-          </label>
+        <div class="grid grid-cols-1 gap-6 min-[400px]:grid-cols-2 min-[400px]:gap-4">
+          <AppSelect
+            v-model="form.rw_id"
+            label="RW"
+            :options="rwOptions"
+            placeholder="Pilih RW"
+            :disabled="!village"
+            :error="errors.rw_id"
+            required
+          />
+          <AppSelect
+            v-model="form.rt_id"
+            label="RT"
+            :options="rtOptions"
+            placeholder="Pilih RT"
+            :disabled="!form.rw_id"
+            :error="errors.rt_id"
+            required
+          />
         </div>
-        <p v-if="errors.residency_status" class="mt-1.5 text-sm text-red-600">
-          {{ errors.residency_status }}
+
+        <fieldset class="flex flex-col gap-3">
+          <legend class="mb-3 leading-5 font-medium text-desa-secondary">Status Tinggal</legend>
+          <div class="grid grid-cols-3 gap-2 sm:gap-3">
+            <label
+              v-for="opt in residencyOptions"
+              :key="opt.value"
+              :class="[
+                'flex h-14 cursor-pointer items-center justify-center rounded-2xl leading-5 font-medium ring-1 transition-all duration-300',
+                'has-[:focus-visible]:ring-2',
+                form.residency_status === opt.value
+                  ? 'bg-desa-foreshadow text-desa-dark-green ring-desa-dark-green'
+                  : 'bg-white text-desa-secondary ring-desa-background hover:bg-desa-foreshadow hover:text-desa-dark-green',
+              ]"
+            >
+              <input
+                v-model="form.residency_status"
+                type="radio"
+                :value="opt.value"
+                class="sr-only"
+              />
+              {{ opt.label }}
+            </label>
+          </div>
+          <p v-if="errors.residency_status" class="text-sm font-medium text-desa-red">
+            {{ errors.residency_status }}
+          </p>
+        </fieldset>
+
+        <AppInput
+          v-model="form.password"
+          label="Kata Sandi"
+          icon="key"
+          type="password"
+          autocomplete="new-password"
+          placeholder="Minimal 8 karakter"
+          :error="errors.password"
+          required
+        />
+        <AppInput
+          v-model="form.password_confirmation"
+          label="Ulangi Kata Sandi"
+          icon="key"
+          type="password"
+          autocomplete="new-password"
+          placeholder="Ketik ulang kata sandi"
+          required
+        />
+      </section>
+
+      <div class="flex flex-col gap-4">
+        <p class="rounded-2xl bg-desa-foreshadow p-4 text-sm leading-5 text-desa-dark-green">
+          Rukana tidak meminta NIK atau data KK saat pendaftaran. Data Anda hanya dilihat pengurus
+          wilayah Anda.
         </p>
-      </fieldset>
-
-      <AppInput
-        v-model="form.password"
-        label="Kata sandi"
-        type="password"
-        autocomplete="new-password"
-        hint="Minimal 8 karakter."
-        :error="errors.password"
-        required
-      />
-      <AppInput
-        v-model="form.password_confirmation"
-        label="Ulangi kata sandi"
-        type="password"
-        autocomplete="new-password"
-        required
-      />
-
-      <p class="text-xs text-slate-500">
-        Rukana tidak meminta NIK atau data KK saat pendaftaran. Data Anda hanya dilihat pengurus
-        wilayah Anda.
-      </p>
-
-      <AppButton type="submit" block :loading="submitting">Daftar</AppButton>
+        <AppButton type="submit" block :loading="submitting">Daftar</AppButton>
+      </div>
     </form>
 
-    <p class="mt-6 text-sm text-slate-600">
+    <p class="text-center leading-5 text-desa-secondary">
       Sudah punya akun?
-      <RouterLink :to="{ name: 'login' }" class="font-semibold text-brand-700 hover:underline"
+      <RouterLink :to="{ name: 'login' }" class="font-semibold text-desa-dark-green hover:underline"
         >Masuk</RouterLink
       >
     </p>

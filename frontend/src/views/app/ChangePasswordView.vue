@@ -34,39 +34,49 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-sm">
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Ganti kata sandi</h1>
-    <AppAlert v-if="forced" variant="warning" class="mt-4">
+  <div class="mx-auto flex max-w-[560px] flex-col gap-6 rounded-3xl bg-white p-6 sm:p-8">
+    <div class="flex flex-col gap-2">
+      <h1 class="text-2xl font-semibold">Ganti Kata Sandi</h1>
+      <p class="leading-5 font-medium text-desa-secondary">
+        Gunakan minimal 8 karakter yang mudah Anda ingat.
+      </p>
+    </div>
+    <AppAlert v-if="forced" variant="warning">
       Akun Anda memakai kata sandi sementara. Ganti dulu sebelum melanjutkan.
     </AppAlert>
 
-    <form class="mt-6 space-y-4" novalidate @submit.prevent="submit">
+    <form class="flex flex-col gap-6" novalidate @submit.prevent="submit">
       <AppAlert v-if="message">{{ message }}</AppAlert>
       <AppInput
         v-model="form.current_password"
-        label="Kata sandi saat ini"
+        label="Kata Sandi Saat Ini"
+        icon="key"
         type="password"
         autocomplete="current-password"
+        placeholder="Ketik kata sandi saat ini"
         :error="errors.current_password"
         required
       />
       <AppInput
         v-model="form.password"
-        label="Kata sandi baru"
+        label="Kata Sandi Baru"
+        icon="key"
         type="password"
         autocomplete="new-password"
-        hint="Minimal 8 karakter."
+        placeholder="Minimal 8 karakter"
         :error="errors.password"
         required
       />
       <AppInput
         v-model="form.password_confirmation"
-        label="Ulangi kata sandi baru"
+        label="Ulangi Kata Sandi Baru"
+        icon="key"
         type="password"
         autocomplete="new-password"
+        placeholder="Ketik ulang kata sandi baru"
         required
       />
-      <AppButton type="submit" block :loading="submitting">Simpan kata sandi</AppButton>
+      <AppButton type="submit" block :loading="submitting">Simpan Kata Sandi</AppButton>
     </form>
   </div>
 </template>
