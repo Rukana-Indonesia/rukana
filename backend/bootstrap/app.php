@@ -8,6 +8,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -40,4 +41,11 @@ return Application::configure(basePath: dirname(__DIR__))
             return false;
         });
         $exceptions->stopIgnoring(AuthorizationException::class);
+
+        // Pesan bawaan Laravel ("This action is unauthorized.") tampil langsung di UI.
+        $exceptions->render(function (AccessDeniedHttpException $e, Request $request) {
+            if ($request->expectsJson() && $e->getMessage() === 'This action is unauthorized.') {
+                return response()->json(['message' => 'Anda tidak punya akses ke data ini.'], 403);
+            }
+        });
     })->create();

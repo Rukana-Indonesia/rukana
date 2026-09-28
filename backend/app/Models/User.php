@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'name', 'phone', 'password', 'role', 'village_id', 'rw_id', 'rt_id',
@@ -78,5 +80,16 @@ class User extends Authenticatable
     public function isActive(): bool
     {
         return $this->status === UserStatus::Active;
+    }
+
+    /** Keluarkan akun ini dari semua perangkat (setelah reset kata sandi atau dinonaktifkan). */
+    public function revokeSessions(): void
+    {
+        $this->setRememberToken(Str::random(60));
+        $this->save();
+
+        if (config('session.driver') === 'database') {
+            DB::table(config('session.table', 'sessions'))->where('user_id', $this->id)->delete();
+        }
     }
 }
