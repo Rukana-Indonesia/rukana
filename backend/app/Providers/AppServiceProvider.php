@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Enums\Role;
 use App\Models\Announcement;
 use App\Models\Complaint;
 use App\Models\LetterRequest;
@@ -17,6 +18,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -44,6 +46,10 @@ class AppServiceProvider extends ServiceProvider
             'announcement' => Announcement::class,
             'monthly_insight' => MonthlyInsight::class,
         ]);
+
+        // RW/RT hanya dikelola operator di desanya sendiri.
+        Gate::define('manage-region', fn (User $user, Rw|Rt $region) => $user->role === Role::Operator
+            && $region->village_id === $user->village_id);
 
         RateLimiter::for('login', fn (Request $request) => [
             Limit::perMinute(5)->by('login:'.Phone::normalize((string) $request->input('phone')).'|'.$request->ip()),
