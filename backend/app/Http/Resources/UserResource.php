@@ -25,7 +25,11 @@ class UserResource extends JsonResource
             'village' => $this->whenLoaded('village', fn () => ['id' => $this->village->id, 'name' => $this->village->name]),
             'rw' => $this->whenLoaded('rw', fn () => $this->rw ? ['id' => $this->rw->id, 'number' => $this->rw->number, 'label' => $this->rw->label()] : null),
             'rt' => $this->whenLoaded('rt', fn () => $this->rt ? ['id' => $this->rt->id, 'number' => $this->rt->number, 'label' => $this->rt->label()] : null),
-            'scope' => $this->when($request->user()?->is($this->resource), fn () => $this->scope()->toArray()),
+            'verified_at' => $this->verified_at?->toIso8601String(),
+            'verifier' => $this->whenLoaded('verifier', fn () => $this->verifier ? ['id' => $this->verifier->id, 'name' => $this->verifier->name] : null),
+            'last_login_at' => $this->last_login_at?->toIso8601String(),
+            'created_at' => $this->created_at?->toIso8601String(),
+            'scope' => $this->when((bool) $request->user()?->is($this->resource), fn () => $this->scope()->toArray()),
         ];
     }
 }
