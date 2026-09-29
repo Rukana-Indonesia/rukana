@@ -52,6 +52,24 @@ const router = createRouter({
           meta: { active: true, title: 'Dasbor' },
         },
         {
+          path: 'warga',
+          name: 'residents',
+          component: () => import('@/views/app/ResidentsView.vue'),
+          meta: { active: true, roles: ['rt', 'operator'], title: 'Data Warga' },
+        },
+        {
+          path: 'pengurus',
+          name: 'officials',
+          component: () => import('@/views/app/admin/OfficialsView.vue'),
+          meta: { active: true, roles: ['operator', 'kepala_desa'], title: 'Akun Pengurus' },
+        },
+        {
+          path: 'wilayah',
+          name: 'regions',
+          component: () => import('@/views/app/admin/RegionsView.vue'),
+          meta: { active: true, roles: ['operator', 'kepala_desa'], title: 'Wilayah' },
+        },
+        {
           path: 'menunggu-verifikasi',
           name: 'pending',
           component: () => import('@/views/app/PendingView.vue'),
