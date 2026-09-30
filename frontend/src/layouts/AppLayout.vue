@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 
 import AppLogo from '@/components/AppLogo.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { initials } from '@/lib/format'
 import { navigationFor } from '@/lib/navigation'
 import { useAuthStore } from '@/stores/auth'
 
@@ -27,14 +28,7 @@ const regionLabel = computed(() => {
     .join(' · ')
 })
 
-const initials = computed(() =>
-  (auth.user?.name ?? '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join(''),
-)
+const userInitials = computed(() => initials(auth.user?.name))
 
 watch(
   () => route.fullPath,
@@ -181,7 +175,7 @@ async function logout() {
           <span
             class="flex size-11 shrink-0 items-center justify-center rounded-full bg-desa-foreshadow font-semibold text-desa-dark-green lg:size-14"
             aria-hidden="true"
-            >{{ initials }}</span
+            >{{ userInitials }}</span
           >
           <div class="hidden w-[150px] min-w-0 flex-col gap-1.5 md:flex">
             <p class="truncate leading-5 font-semibold">{{ auth.user?.name }}</p>
