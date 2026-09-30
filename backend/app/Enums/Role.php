@@ -27,6 +27,20 @@ enum Role: string
         return $this !== self::Warga;
     }
 
+    /**
+     * Tingkat tempat peran ini memproses surat/laporan. Kepala desa hanya melihat,
+     * jadi tidak punya tingkat kerja.
+     */
+    public function actingLevel(): ?Level
+    {
+        return match ($this) {
+            self::Rt => Level::Rt,
+            self::Rw => Level::Rw,
+            self::Operator => Level::Village,
+            self::Warga, self::KepalaDesa => null,
+        };
+    }
+
     /** Scope datanya seluruh desa. */
     public function isVillageWide(): bool
     {

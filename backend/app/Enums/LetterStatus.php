@@ -29,4 +29,21 @@ enum LetterStatus: string
     {
         return in_array($this, [self::Completed, self::Rejected], true);
     }
+
+    /** Tingkat yang harus bertindak pada status ini; null bila sudah final. */
+    public function currentLevel(): ?Level
+    {
+        return match ($this) {
+            self::Submitted => Level::Rt,
+            self::RtVerified => Level::Rw,
+            self::RwApproved, self::VillageReceived, self::ReadyForPickup => Level::Village,
+            self::Completed, self::Rejected => null,
+        };
+    }
+
+    /** Status yang menunggu tindakan tingkat ini (antrean kerja pengurus). */
+    public static function awaiting(Level $level): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $s) => $s->currentLevel() === $level));
+    }
 }
