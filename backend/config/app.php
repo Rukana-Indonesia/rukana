@@ -70,6 +70,9 @@ return [
     // Zona waktu untuk tampilan, periode laporan, dan nomor tiket.
     'display_timezone' => 'Asia/Jakarta',
 
+    // Alamat aplikasi Vue, untuk tautan di PDF (mis. halaman cek tiket).
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
@@ -81,7 +84,7 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'id'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
