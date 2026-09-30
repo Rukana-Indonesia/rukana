@@ -1,10 +1,14 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
+// Angka yang sudah tersedia, per `key` kartu. Kartu tanpa angka tampil "Segera hadir".
+const counts = ref({})
 
 // Isi dasbor per peran (PRD 6.8). Angkanya menyusul saat modulnya dibangun.
 const modules = {
@@ -14,7 +18,7 @@ const modules = {
     { label: 'Pengumuman terbaru', icon: 'notification' },
   ],
   rt: [
-    { label: 'Warga menunggu verifikasi', icon: 'user-search' },
+    { label: 'Warga menunggu verifikasi', icon: 'user-search', key: 'pending', to: 'residents' },
     { label: 'Pengantar menunggu verifikasi', icon: 'document-text' },
     { label: 'Laporan belum selesai', icon: 'note' },
     { label: 'Rata-rata rating layanan', icon: 'tick-circle' },
@@ -26,10 +30,10 @@ const modules = {
     { label: 'Monthly Insight RW', icon: 'chart-square' },
   ],
   operator: [
+    { label: 'Warga menunggu verifikasi', icon: 'user-search', key: 'pending', to: 'residents' },
     { label: 'Surat menunggu diproses', icon: 'receipt-search' },
     { label: 'Surat siap diambil', icon: 'tick-circle' },
     { label: 'Laporan eskalasi ke desa', icon: 'note' },
-    { label: 'Rekap per RW/RT', icon: 'grid-5' },
   ],
   kepala_desa: [
     { label: 'Rekap per RW/RT', icon: 'grid-5' },
@@ -74,6 +78,16 @@ const scopeLabel = computed(() => {
     u?.scope?.level
   ]
 })
+
+onMounted(async () => {
+  if (!auth.hasRole('rt', 'operator')) return
+  try {
+    const { data } = await api.get('/residents', { params: { status: 'pending', per_page: 1 } })
+    counts.value = { ...counts.value, pending: data.meta.counts.pending }
+  } catch {
+    // Kartu tetap tampil tanpa angka.
+  }
+})
 </script>
 
 <template>
@@ -113,10 +127,15 @@ const scopeLabel = computed(() => {
         class="grid flex-1 grid-cols-1 gap-[14px] min-[480px]:grid-cols-2"
         aria-label="Ringkasan"
       >
-        <article
+        <component
+          :is="item.to ? RouterLink : 'article'"
           v-for="item in items"
           :key="item.label"
-          class="flex flex-col gap-3 rounded-2xl bg-white p-6"
+          :to="item.to ? { name: item.to } : undefined"
+          :class="[
+            'flex flex-col gap-3 rounded-2xl bg-white p-6',
+            item.to && 'ring-desa-dark-green transition-all duration-300 hover:ring-[1.5px]',
+          ]"
         >
           <div class="flex items-start justify-between gap-3">
             <p class="font-medium text-desa-secondary">{{ item.label }}</p>
@@ -126,14 +145,24 @@ const scopeLabel = computed(() => {
               <AppIcon :name="item.icon" class="text-desa-dark-green" />
             </span>
           </div>
-          <div class="mt-auto flex flex-col gap-1.5">
+          <div
+            v-if="item.key && counts[item.key] !== undefined"
+            class="mt-auto flex flex-col gap-1.5"
+          >
+            <p class="text-[32px] leading-10 font-semibold">{{ counts[item.key] }}</p>
+            <p class="flex items-center gap-1 text-sm font-medium text-desa-dark-green">
+              Lihat daftar
+              <AppIcon name="arrow-square-right" class="size-[18px]!" />
+            </p>
+          </div>
+          <div v-else class="mt-auto flex flex-col gap-1.5">
             <p class="text-[32px] leading-10 font-semibold text-desa-grey">—</p>
             <p class="flex items-center gap-1 text-sm font-medium text-desa-secondary">
               <AppIcon name="timer" class="size-[18px]!" />
               Segera hadir
             </p>
           </div>
-        </article>
+        </component>
       </section>
     </div>
   </div>
