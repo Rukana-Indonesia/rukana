@@ -2,10 +2,16 @@
 
 use App\Http\Controllers\Api\Admin\OfficialController;
 use App\Http\Controllers\Api\Admin\RegionController as AdminRegionController;
+use App\Http\Controllers\Api\Admin\ServiceTypeController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\LetterController;
+use App\Http\Controllers\Api\LetterPdfController;
 use App\Http\Controllers\Api\RegionController;
 use App\Http\Controllers\Api\ResetPasswordController;
 use App\Http\Controllers\Api\ResidentController;
+use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\TicketController;
+use App\Support\Letters\LetterWorkflow;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +22,9 @@ use Illuminate\Support\Facades\Route;
 
 // Publik
 Route::get('regions', [RegionController::class, 'index']);
+Route::get('services', [ServiceController::class, 'index']);
+Route::get('services/{slug}', [ServiceController::class, 'show']);
+Route::get('tickets/{code}', [TicketController::class, 'show'])->middleware('throttle:ticket-check');
 
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:register');
@@ -31,6 +40,18 @@ Route::prefix('auth')->group(function () {
 // Fitur yang butuh akun aktif (sudah diverifikasi) ditambahkan di grup ini.
 // `role:` hanya saringan kasar; batas wilayah per record dicek di Policy/Gate.
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
+    // Surat pengantar. Daftar & detail untuk semua peran (dibatasi scope wilayah);
+    // pengajuan hanya warga, aksi per tingkat dicek di LetterRequestPolicy.
+    Route::get('letters', [LetterController::class, 'index']);
+    Route::post('letters', [LetterController::class, 'store'])->middleware(['role:warga', 'throttle:letter-submit']);
+    Route::get('letters/{letter}', [LetterController::class, 'show']);
+    Route::get('letters/{letter}/pdf', LetterPdfController::class);
+    Route::get('letters/{letter}/nik', [LetterController::class, 'nik']);
+    Route::get('letters/{letter}/attachments/{attachment}', [LetterController::class, 'attachment'])->scopeBindings();
+    Route::post('letters/{letter}/{action}', [LetterController::class, 'act'])
+        ->whereIn('action', LetterWorkflow::ACTIONS)
+        ->middleware('role:rt,rw,operator');
+
     Route::middleware('role:rt,operator')->group(function () {
         Route::get('residents', [ResidentController::class, 'index']);
         Route::get('residents/{user}', [ResidentController::class, 'show']);
@@ -43,6 +64,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::middleware('role:operator,kepala_desa')->group(function () {
             Route::get('regions', [AdminRegionController::class, 'index']);
             Route::get('officials', [OfficialController::class, 'index']);
+            Route::get('services', [ServiceTypeController::class, 'index']);
         });
 
         Route::middleware('role:operator')->group(function () {
@@ -56,6 +78,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::put('officials/{user}', [OfficialController::class, 'update']);
             Route::post('officials/{user}/suspend', [OfficialController::class, 'suspend']);
             Route::post('officials/{user}/activate', [OfficialController::class, 'activate']);
+
+            Route::post('services', [ServiceTypeController::class, 'store']);
+            Route::put('services/{serviceType}', [ServiceTypeController::class, 'update']);
+            Route::delete('services/{serviceType}', [ServiceTypeController::class, 'destroy']);
         });
     });
 });
