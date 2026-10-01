@@ -44,6 +44,11 @@ class LetterRequest extends Model
         return $this->belongsTo(ServiceType::class)->withTrashed();
     }
 
+    public function village(): BelongsTo
+    {
+        return $this->belongsTo(Village::class);
+    }
+
     public function rw(): BelongsTo
     {
         return $this->belongsTo(Rw::class);
