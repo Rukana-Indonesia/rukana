@@ -51,6 +51,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-region', fn (User $user, Rw|Rt $region) => $user->role === Role::Operator
             && $region->village_id === $user->village_id);
 
+        Gate::define('manage-service', fn (User $user, ServiceType $service) => $user->role === Role::Operator
+            && $service->village_id === $user->village_id);
+
         RateLimiter::for('login', fn (Request $request) => [
             Limit::perMinute(5)->by('login:'.Phone::normalize((string) $request->input('phone')).'|'.$request->ip()),
             Limit::perMinute(20)->by('login-ip:'.$request->ip()),
@@ -59,5 +62,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('register', fn (Request $request) => Limit::perHour(10)->by($request->ip()));
 
         RateLimiter::for('ticket-check', fn (Request $request) => Limit::perMinute(20)->by($request->ip()));
+
+        RateLimiter::for('letter-submit', fn (Request $request) => Limit::perMinute(10)->by('letter:'.$request->user()?->id));
     }
 }
