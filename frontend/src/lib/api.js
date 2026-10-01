@@ -78,3 +78,35 @@ export function fieldErrors(error) {
   if (!errors) return {}
   return Object.fromEntries(Object.entries(errors).map(([field, messages]) => [field, messages[0]]))
 }
+
+/**
+ * Buka berkas dari API (PDF pengantar, lampiran) di tab baru. Berkas diambil lewat
+ * klien API supaya sesi Sanctum pasti ikut, apa pun pengaturan referrer browser.
+ * `path` adalah path lengkap, mis. '/api/letters/1/pdf'.
+ */
+export async function openFile(path, filename) {
+  // Tab dibuka saat masih di dalam klik pengguna supaya tidak diblokir sebagai pop-up.
+  const tab = window.open('', '_blank')
+  try {
+    const { data } = await api.get(path, { baseURL: '', responseType: 'blob' })
+    const url = URL.createObjectURL(data)
+    if (tab) {
+      tab.location.href = url
+    } else {
+      const link = Object.assign(document.createElement('a'), { href: url, download: filename })
+      link.click()
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (error) {
+    tab?.close()
+    // Respons error berupa Blob; ambil pesannya supaya errorMessage() bisa membacanya.
+    if (error.response?.data instanceof Blob) {
+      try {
+        error.response.data = JSON.parse(await error.response.data.text())
+      } catch {
+        error.response.data = {}
+      }
+    }
+    throw error
+  }
+}

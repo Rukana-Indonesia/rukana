@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth'
  *   auth    — wajib masuk
  *   active  — wajib akun aktif (sudah diverifikasi RT)
  *   roles   — daftar peran yang boleh membuka
+ *   section — nama route menu yang ikut disorot (mis. detail surat → menu Surat)
  *
  * Guard ini hanya untuk kenyamanan navigasi. Otorisasi sebenarnya di backend.
  */
@@ -20,6 +21,18 @@ const router = createRouter({
       component: () => import('@/layouts/PublicLayout.vue'),
       children: [
         { path: '', name: 'home', component: () => import('@/views/public/HomeView.vue') },
+        {
+          path: 'layanan',
+          name: 'services',
+          component: () => import('@/views/public/ServicesView.vue'),
+          meta: { title: 'Katalog Layanan' },
+        },
+        {
+          path: 'cek-tiket',
+          name: 'ticket-check',
+          component: () => import('@/views/public/TicketCheckView.vue'),
+          meta: { title: 'Cek Status Tiket' },
+        },
       ],
     },
     {
@@ -50,6 +63,30 @@ const router = createRouter({
           name: 'dashboard',
           component: () => import('@/views/app/DashboardView.vue'),
           meta: { active: true, title: 'Dasbor' },
+        },
+        {
+          path: 'surat',
+          name: 'letters',
+          component: () => import('@/views/app/letters/LettersView.vue'),
+          meta: { active: true, title: 'Surat Pengantar' },
+        },
+        {
+          path: 'surat/ajukan/:slug?',
+          name: 'letter-create',
+          component: () => import('@/views/app/letters/LetterCreateView.vue'),
+          meta: { active: true, roles: ['warga'], title: 'Ajukan Surat', section: 'letters' },
+        },
+        {
+          path: 'surat/:id(\\d+)',
+          name: 'letter-detail',
+          component: () => import('@/views/app/letters/LetterDetailView.vue'),
+          meta: { active: true, title: 'Detail Surat', section: 'letters' },
+        },
+        {
+          path: 'layanan',
+          name: 'services-admin',
+          component: () => import('@/views/app/admin/ServicesAdminView.vue'),
+          meta: { active: true, roles: ['operator', 'kepala_desa'], title: 'Katalog Layanan' },
         },
         {
           path: 'warga',
