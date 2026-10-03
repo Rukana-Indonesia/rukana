@@ -31,6 +31,22 @@ const steps = [
   { icon: 'ticket', title: 'Ajukan & pantau', body: 'Setiap pengajuan dapat kode tiket.' },
 ]
 
+// Bisa dibuka tanpa akun.
+const shortcuts = [
+  {
+    name: 'services',
+    icon: 'document-text',
+    title: 'Katalog Layanan',
+    body: 'Lihat syarat dan alur tiap surat sebelum mengajukan.',
+  },
+  {
+    name: 'ticket-check',
+    icon: 'ticket',
+    title: 'Cek Status Tiket',
+    body: 'Pantau posisi surat dengan kode tiket, tanpa masuk.',
+  },
+]
+
 const primary =
   'inline-flex h-14 items-center justify-between gap-3 rounded-2xl bg-white px-5 font-medium text-desa-dark-green transition-all duration-300 hover:bg-desa-foreshadow'
 const outline =
@@ -84,6 +100,26 @@ const outline =
           <p class="leading-relaxed text-desa-secondary">{{ f.body }}</p>
         </div>
       </article>
+    </section>
+
+    <section class="grid gap-[14px] sm:grid-cols-2" aria-label="Tanpa login">
+      <RouterLink
+        v-for="link in shortcuts"
+        :key="link.name"
+        :to="{ name: link.name }"
+        class="flex items-center gap-4 rounded-2xl bg-white p-6 ring-desa-dark-green transition-all duration-300 hover:ring-[1.5px]"
+      >
+        <span
+          class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-desa-foreshadow"
+        >
+          <AppIcon :name="link.icon" class="size-7! text-desa-dark-green" />
+        </span>
+        <span class="flex min-w-0 flex-1 flex-col gap-1">
+          <span class="leading-5 font-semibold">{{ link.title }}</span>
+          <span class="text-sm leading-5 text-desa-secondary">{{ link.body }}</span>
+        </span>
+        <AppIcon name="arrow-square-right" class="text-desa-dark-green" />
+      </RouterLink>
     </section>
 
     <section class="flex flex-col gap-6 rounded-2xl bg-white p-6 sm:p-8">

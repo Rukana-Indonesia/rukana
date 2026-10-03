@@ -13,29 +13,59 @@ const counts = ref({})
 // Isi dasbor per peran (PRD 6.8). Angkanya menyusul saat modulnya dibangun.
 const modules = {
   warga: [
-    { label: 'Pengajuan surat saya', icon: 'document-text' },
+    {
+      label: 'Pengajuan surat berjalan',
+      icon: 'document-text',
+      key: 'lettersActive',
+      to: 'letters',
+    },
     { label: 'Laporan saya', icon: 'note' },
     { label: 'Pengumuman terbaru', icon: 'notification' },
   ],
   rt: [
     { label: 'Warga menunggu verifikasi', icon: 'user-search', key: 'pending', to: 'residents' },
-    { label: 'Pengantar menunggu verifikasi', icon: 'document-text' },
+    {
+      label: 'Pengantar menunggu verifikasi',
+      icon: 'document-text',
+      key: 'lettersInbox',
+      to: 'letters',
+      query: { tab: 'inbox' },
+    },
     { label: 'Laporan belum selesai', icon: 'note' },
     { label: 'Rata-rata rating layanan', icon: 'tick-circle' },
   ],
   rw: [
-    { label: 'Pengantar menunggu persetujuan', icon: 'document-text' },
+    {
+      label: 'Pengantar menunggu persetujuan',
+      icon: 'document-text',
+      key: 'lettersInbox',
+      to: 'letters',
+      query: { tab: 'inbox' },
+    },
     { label: 'Laporan diteruskan ke RW', icon: 'note' },
     { label: 'Rata-rata rating layanan', icon: 'tick-circle' },
     { label: 'Monthly Insight RW', icon: 'chart-square' },
   ],
   operator: [
     { label: 'Warga menunggu verifikasi', icon: 'user-search', key: 'pending', to: 'residents' },
-    { label: 'Surat menunggu diproses', icon: 'receipt-search' },
-    { label: 'Surat siap diambil', icon: 'tick-circle' },
+    {
+      label: 'Surat menunggu diproses',
+      icon: 'receipt-search',
+      key: 'lettersVillage',
+      to: 'letters',
+      query: { tab: 'inbox' },
+    },
+    {
+      label: 'Surat siap diambil',
+      icon: 'tick-circle',
+      key: 'lettersReady',
+      to: 'letters',
+      query: { tab: 'inbox' },
+    },
     { label: 'Laporan eskalasi ke desa', icon: 'note' },
   ],
   kepala_desa: [
+    { label: 'Surat sedang berjalan', icon: 'document-text', key: 'lettersActive', to: 'letters' },
     { label: 'Rekap per RW/RT', icon: 'grid-5' },
     { label: 'Peta sebaran laporan', icon: 'location' },
     { label: 'Monthly Insight desa', icon: 'chart-square' },
@@ -79,15 +109,27 @@ const scopeLabel = computed(() => {
   ]
 })
 
-onMounted(async () => {
+async function loadResidents() {
   if (!auth.hasRole('rt', 'operator')) return
-  try {
-    const { data } = await api.get('/residents', { params: { status: 'pending', per_page: 1 } })
-    counts.value = { ...counts.value, pending: data.meta.counts.pending }
-  } catch {
-    // Kartu tetap tampil tanpa angka.
+  const { data } = await api.get('/residents', { params: { status: 'pending', per_page: 1 } })
+  counts.value = { ...counts.value, pending: data.meta.counts.pending }
+}
+
+async function loadLetters() {
+  const { data } = await api.get('/letters', { params: { per_page: 1 } })
+  const c = data.meta.counts
+  const all = Object.values(c).reduce((sum, n) => sum + n, 0)
+  counts.value = {
+    ...counts.value,
+    lettersActive: all - c.completed - c.rejected,
+    lettersInbox: data.meta.inbox,
+    lettersVillage: c.rw_approved + c.village_received,
+    lettersReady: c.ready_for_pickup,
   }
-})
+}
+
+// Kartu yang gagal dimuat tetap tampil tanpa angka.
+onMounted(() => Promise.allSettled([loadResidents(), loadLetters()]))
 </script>
 
 <template>
@@ -131,7 +173,7 @@ onMounted(async () => {
           :is="item.to ? RouterLink : 'article'"
           v-for="item in items"
           :key="item.label"
-          :to="item.to ? { name: item.to } : undefined"
+          :to="item.to ? { name: item.to, query: item.query } : undefined"
           :class="[
             'flex flex-col gap-3 rounded-2xl bg-white p-6',
             item.to && 'ring-desa-dark-green transition-all duration-300 hover:ring-[1.5px]',
