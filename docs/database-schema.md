@@ -246,7 +246,7 @@ Satu RT/RW boleh punya lebih dari satu akun pengurus (ketua, sekretaris).
 | `user_id`, `service_type_id` | |
 | `flow` | **snapshot** alur dari katalog, supaya surat yang sedang berjalan tidak berubah kalau katalog diedit |
 | `village_id`, `rw_id`, `rt_id` | snapshot wilayah pemohon |
-| `purpose` TEXT, `form_data` JSON | isian keperluan + field dinamis |
+| `purpose` TEXT, `form_data` JSON | keperluan + isian dinamis, disimpan sebagai snapshot `[{key, label, value}]` supaya surat lama tetap terbaca walau label di katalog diubah |
 | `nik_encrypted` TEXT NULL | cast `encrypted` Laravel; hanya diisi bila `requires_nik` |
 | `nik_masked` VARCHAR(16) NULL | `3204********0001` untuk tampilan dan daftar, tanpa perlu dekripsi |
 | `status` | lihat state machine |
