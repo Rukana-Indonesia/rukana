@@ -6,6 +6,12 @@ import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 
+// Di HP tautan ini pindah ke footer dan kartu di beranda supaya header tetap ringkas.
+const publicLinks = [
+  { name: 'services', label: 'Katalog Layanan' },
+  { name: 'ticket-check', label: 'Cek Tiket' },
+]
+
 const linkPrimary =
   'inline-flex h-11 items-center rounded-2xl bg-desa-dark-green px-4 text-sm font-medium text-white transition-all duration-300 hover:bg-[#2a5030] sm:h-12 sm:px-5'
 const linkGhost =
@@ -20,6 +26,14 @@ const linkGhost =
           <AppLogo />
         </RouterLink>
         <nav class="flex items-center gap-2">
+          <RouterLink
+            v-for="link in publicLinks"
+            :key="link.name"
+            :to="{ name: link.name }"
+            class="hidden h-12 items-center rounded-2xl px-4 text-sm font-medium text-desa-secondary transition-all duration-300 hover:text-desa-dark-green md:inline-flex"
+            active-class="text-desa-dark-green!"
+            >{{ link.label }}</RouterLink
+          >
           <RouterLink v-if="auth.isLoggedIn" :to="{ name: 'dashboard' }" :class="linkPrimary"
             >Buka aplikasi</RouterLink
           >
@@ -40,6 +54,15 @@ const linkGhost =
         class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-sm text-desa-secondary sm:flex-row"
       >
         <AppLogo />
+        <nav class="flex items-center gap-5" aria-label="Tautan publik">
+          <RouterLink
+            v-for="link in publicLinks"
+            :key="link.name"
+            :to="{ name: link.name }"
+            class="font-medium hover:text-desa-dark-green"
+            >{{ link.label }}</RouterLink
+          >
+        </nav>
         <p>Platform layanan warga tingkat desa</p>
       </div>
     </footer>

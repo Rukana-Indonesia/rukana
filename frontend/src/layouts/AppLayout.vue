@@ -30,6 +30,9 @@ const regionLabel = computed(() => {
 
 const userInitials = computed(() => initials(auth.user?.name))
 
+/** Menu disorot juga untuk halaman turunannya (mis. detail surat di menu Surat). */
+const isCurrent = (item) => route.name === item.name || route.meta.section === item.name
+
 watch(
   () => route.fullPath,
   () => (drawerOpen.value = false),
@@ -105,8 +108,11 @@ async function logout() {
             <li v-for="item in menu" :key="item.name">
               <RouterLink
                 :to="{ name: item.name }"
-                class="group flex h-14 items-center gap-2 rounded-2xl p-4 text-desa-secondary transition-all duration-300 hover:bg-desa-foreshadow hover:text-desa-dark-green"
-                exact-active-class="bg-desa-foreshadow font-medium text-desa-dark-green!"
+                :class="[
+                  'group flex h-14 items-center gap-2 rounded-2xl p-4 text-desa-secondary transition-all duration-300 hover:bg-desa-foreshadow hover:text-desa-dark-green',
+                  isCurrent(item) && 'bg-desa-foreshadow font-medium text-desa-dark-green!',
+                ]"
+                :aria-current="isCurrent(item) ? 'page' : undefined"
               >
                 <AppIcon :name="item.icon" />
                 <span class="flex-1 leading-5">{{ item.label }}</span>
