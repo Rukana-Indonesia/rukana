@@ -64,5 +64,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('ticket-check', fn (Request $request) => Limit::perMinute(20)->by($request->ip()));
 
         RateLimiter::for('letter-submit', fn (Request $request) => Limit::perMinute(10)->by('letter:'.$request->user()?->id));
+
+        RateLimiter::for('complaint-submit', fn (Request $request) => Limit::perMinute(10)->by('complaint:'.$request->user()?->id));
+
+        RateLimiter::for('complaint-comment', fn (Request $request) => Limit::perMinute(30)->by('complaint-comment:'.$request->user()?->id));
     }
 }

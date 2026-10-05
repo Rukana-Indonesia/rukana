@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ComplaintAction;
 use App\Enums\ComplaintStatus;
 use App\Enums\Level;
 use App\Enums\Urgency;
@@ -69,6 +70,12 @@ class Complaint extends Model
         return $this->hasMany(ComplaintStep::class)->orderBy('id');
     }
 
+    /** Langkah eskalasi saja; cukup untuk handledLevels() di halaman daftar. */
+    public function forwards(): HasMany
+    {
+        return $this->hasMany(ComplaintStep::class)->where('action', ComplaintAction::Forwarded)->orderBy('id');
+    }
+
     public function comments(): HasMany
     {
         return $this->hasMany(ComplaintComment::class)->orderBy('id');
@@ -82,5 +89,24 @@ class Complaint extends Model
     public function rating(): MorphOne
     {
         return $this->morphOne(Rating::class, 'rateable');
+    }
+
+    /**
+     * Tingkat yang pernah memegang laporan ini: RT pelapor ditambah tujuan setiap
+     * eskalasi. Pengurus di tingkat ini dianggap "menangani" (lihat ComplaintPolicy).
+     *
+     * @return list<Level>
+     */
+    public function handledLevels(): array
+    {
+        $forwards = $this->relationLoaded('forwards')
+            ? $this->forwards
+            : ($this->relationLoaded('steps') ? $this->steps->where('action', ComplaintAction::Forwarded) : $this->forwards()->get());
+
+        return collect([Level::Rt])
+            ->merge($forwards->pluck('to_level'))
+            ->unique(fn (Level $level) => $level->value)
+            ->values()
+            ->all();
     }
 }
