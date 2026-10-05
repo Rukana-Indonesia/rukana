@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\OfficialController;
 use App\Http\Controllers\Api\Admin\RegionController as AdminRegionController;
 use App\Http\Controllers\Api\Admin\ServiceTypeController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ComplaintController;
 use App\Http\Controllers\Api\LetterController;
 use App\Http\Controllers\Api\LetterPdfController;
 use App\Http\Controllers\Api\RegionController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Api\ResetPasswordController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\TicketController;
+use App\Support\Complaints\ComplaintWorkflow;
 use App\Support\Letters\LetterWorkflow;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +52,19 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('letters/{letter}/attachments/{attachment}', [LetterController::class, 'attachment'])->scopeBindings();
     Route::post('letters/{letter}/{action}', [LetterController::class, 'act'])
         ->whereIn('action', LetterWorkflow::ACTIONS)
+        ->middleware('role:rt,rw,operator');
+
+    // Laporan warga. Sama seperti surat: pelaporan hanya warga, aksi dicek per
+    // tingkat di ComplaintPolicy (hanya tingkat yang sedang memegang laporan).
+    Route::get('complaint-categories', [ComplaintController::class, 'categories']);
+    Route::get('complaints', [ComplaintController::class, 'index']);
+    Route::post('complaints', [ComplaintController::class, 'store'])->middleware(['role:warga', 'throttle:complaint-submit']);
+    Route::get('complaints/{complaint}', [ComplaintController::class, 'show']);
+    Route::get('complaints/{complaint}/photos/{photo}', [ComplaintController::class, 'photo'])->scopeBindings();
+    Route::post('complaints/{complaint}/comments', [ComplaintController::class, 'comment'])->middleware('throttle:complaint-comment');
+    Route::put('complaints/{complaint}/classification', [ComplaintController::class, 'classify'])->middleware('role:rt,rw,operator');
+    Route::post('complaints/{complaint}/{action}', [ComplaintController::class, 'act'])
+        ->whereIn('action', ComplaintWorkflow::ACTIONS)
         ->middleware('role:rt,rw,operator');
 
     Route::middleware('role:rt,operator')->group(function () {

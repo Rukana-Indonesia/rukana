@@ -7,6 +7,9 @@
 return [
     'accepted' => ':Attribute harus disetujui.',
     'array' => ':Attribute tidak valid.',
+    'after' => ':Attribute harus setelah :date.',
+    'after_or_equal' => ':Attribute harus sama dengan atau setelah :date.',
+    'before_or_equal' => ':Attribute harus sama dengan atau sebelum :date.',
     'between' => [
         'numeric' => ':Attribute harus di antara :min dan :max.',
         'file' => 'Ukuran :attribute harus di antara :min dan :max KB.',
@@ -54,6 +57,7 @@ return [
     'required_if' => ':Attribute wajib diisi.',
     'required_unless' => ':Attribute wajib diisi.',
     'required_with' => ':Attribute wajib diisi.',
+    'required_without' => ':Attribute wajib diisi.',
     'size' => [
         'numeric' => ':Attribute harus :size.',
         'file' => 'Ukuran :attribute harus :size KB.',
@@ -87,5 +91,17 @@ return [
         'notes' => 'catatan',
         'form_schema' => 'isian tambahan',
         'code' => 'kode tiket',
+        'title' => 'judul',
+        'description' => 'deskripsi',
+        'category_id' => 'kategori',
+        'urgency' => 'urgensi',
+        'latitude' => 'titik lokasi',
+        'longitude' => 'titik lokasi',
+        'location_text' => 'patokan lokasi',
+        'occurred_at' => 'waktu kejadian',
+        'photos' => 'foto',
+        'photos.*' => 'foto',
+        'body' => 'tanggapan',
+        'target' => 'tujuan',
     ],
 ];
