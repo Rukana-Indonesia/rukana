@@ -9,7 +9,7 @@ const model = defineModel({ type: [String, Number], default: '' })
 
 defineProps({
   label: { type: String, required: true },
-  options: { type: Array, required: true }, // [{ value, label }]
+  options: { type: Array, required: true }, // [{ value, label }] atau grup [{ label, options: [...] }]
   icon: { type: String, default: '' },
   placeholder: { type: String, default: 'Pilih…' },
   error: { type: String, default: '' },
@@ -38,7 +38,14 @@ const id = useId()
         ]"
       >
         <option value="" disabled>{{ placeholder }}</option>
-        <option v-for="opt in options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        <template v-for="opt in options" :key="opt.options ? `group-${opt.label}` : opt.value">
+          <optgroup v-if="opt.options" :label="opt.label">
+            <option v-for="child in opt.options" :key="child.value" :value="child.value">
+              {{ child.label }}
+            </option>
+          </optgroup>
+          <option v-else :value="opt.value">{{ opt.label }}</option>
+        </template>
       </select>
       <AppIcon
         v-if="icon"

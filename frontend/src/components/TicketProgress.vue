@@ -5,8 +5,9 @@ import AppIcon from '@/components/ui/AppIcon.vue'
 import { formatDate } from '@/lib/format'
 
 /**
- * Tahapan surat sesuai alurnya (mis. Diajukan → Diverifikasi RT → Selesai) dengan
- * waktu tiap tahap dari timeline. Dipakai di detail surat dan halaman cek tiket.
+ * Tahapan tiket sesuai alurnya (mis. Diajukan → Diverifikasi RT → Selesai) dengan
+ * waktu tiap tahap dari timeline. Dipakai di detail surat, detail laporan, dan
+ * halaman cek tiket.
  */
 const props = defineProps({
   stages: { type: Array, required: true }, // [{ status, label }]
@@ -21,11 +22,14 @@ const reachedAt = computed(() =>
 
 const items = computed(() => {
   const rejected = props.status === 'rejected'
-  // Tahap terakhir yang sudah dicapai (sebelum ditolak, bila ditolak).
-  const reached = props.stages.filter((s) => reachedAt.value[s.status]).length
+  // Jumlah tahap yang sudah dilewati: sampai status sekarang (laporan bisa diteruskan
+  // lagi setelah diproses), atau sampai tahap terakhir sebelum ditolak.
+  const current = props.stages.findIndex((s) => s.status === props.status)
+  const reached =
+    current >= 0 ? current + 1 : props.stages.filter((s) => reachedAt.value[s.status]).length
   const list = props.stages.map((stage, i) => ({
     ...stage,
-    at: reachedAt.value[stage.status],
+    at: i < reached ? reachedAt.value[stage.status] : undefined,
     state: i < reached ? 'done' : !rejected && i === reached ? 'current' : 'upcoming',
   }))
 
