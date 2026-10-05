@@ -12,6 +12,13 @@ export const navigation = [
     icon: 'document-text',
     roles: [],
   },
+  {
+    name: 'complaints',
+    label: 'Laporan Warga',
+    labels: { warga: 'Laporan Saya' },
+    icon: 'note',
+    roles: [],
+  },
   { name: 'residents', label: 'Data Warga', icon: 'user-search', roles: ['rt', 'operator'] },
   {
     name: 'officials',

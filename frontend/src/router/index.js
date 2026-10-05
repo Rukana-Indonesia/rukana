@@ -83,6 +83,24 @@ const router = createRouter({
           meta: { active: true, title: 'Detail Surat', section: 'letters' },
         },
         {
+          path: 'laporan',
+          name: 'complaints',
+          component: () => import('@/views/app/complaints/ComplaintsView.vue'),
+          meta: { active: true, title: 'Laporan Warga' },
+        },
+        {
+          path: 'laporan/buat',
+          name: 'complaint-create',
+          component: () => import('@/views/app/complaints/ComplaintCreateView.vue'),
+          meta: { active: true, roles: ['warga'], title: 'Buat Laporan', section: 'complaints' },
+        },
+        {
+          path: 'laporan/:id(\\d+)',
+          name: 'complaint-detail',
+          component: () => import('@/views/app/complaints/ComplaintDetailView.vue'),
+          meta: { active: true, title: 'Detail Laporan', section: 'complaints' },
+        },
+        {
           path: 'layanan',
           name: 'services-admin',
           component: () => import('@/views/app/admin/ServicesAdminView.vue'),
