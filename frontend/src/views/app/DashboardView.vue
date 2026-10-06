@@ -19,7 +19,13 @@ const modules = {
       key: 'lettersActive',
       to: 'letters',
     },
-    { label: 'Laporan saya', icon: 'note' },
+    {
+      label: 'Laporan berjalan',
+      icon: 'note',
+      key: 'complaintsActive',
+      to: 'complaints',
+      query: { tab: 'active' },
+    },
     { label: 'Pengumuman terbaru', icon: 'notification' },
   ],
   rt: [
@@ -31,7 +37,13 @@ const modules = {
       to: 'letters',
       query: { tab: 'inbox' },
     },
-    { label: 'Laporan belum selesai', icon: 'note' },
+    {
+      label: 'Laporan belum selesai',
+      icon: 'note',
+      key: 'complaintsActive',
+      to: 'complaints',
+      query: { tab: 'active' },
+    },
     { label: 'Rata-rata rating layanan', icon: 'tick-circle' },
   ],
   rw: [
@@ -42,7 +54,13 @@ const modules = {
       to: 'letters',
       query: { tab: 'inbox' },
     },
-    { label: 'Laporan diteruskan ke RW', icon: 'note' },
+    {
+      label: 'Laporan perlu ditangani RW',
+      icon: 'note',
+      key: 'complaintsInbox',
+      to: 'complaints',
+      query: { tab: 'inbox' },
+    },
     { label: 'Rata-rata rating layanan', icon: 'tick-circle' },
     { label: 'Monthly Insight RW', icon: 'chart-square' },
   ],
@@ -62,11 +80,23 @@ const modules = {
       to: 'letters',
       query: { tab: 'inbox' },
     },
-    { label: 'Laporan eskalasi ke desa', icon: 'note' },
+    {
+      label: 'Laporan eskalasi ke desa',
+      icon: 'note',
+      key: 'complaintsInbox',
+      to: 'complaints',
+      query: { tab: 'inbox' },
+    },
   ],
   kepala_desa: [
     { label: 'Surat sedang berjalan', icon: 'document-text', key: 'lettersActive', to: 'letters' },
-    { label: 'Rekap per RW/RT', icon: 'grid-5' },
+    {
+      label: 'Laporan belum selesai',
+      icon: 'note',
+      key: 'complaintsActive',
+      to: 'complaints',
+      query: { tab: 'active' },
+    },
     { label: 'Peta sebaran laporan', icon: 'location' },
     { label: 'Monthly Insight desa', icon: 'chart-square' },
   ],
@@ -128,8 +158,19 @@ async function loadLetters() {
   }
 }
 
+async function loadComplaints() {
+  const { data } = await api.get('/complaints', { params: { per_page: 1 } })
+  const c = data.meta.counts
+  const all = Object.values(c).reduce((sum, n) => sum + n, 0)
+  counts.value = {
+    ...counts.value,
+    complaintsActive: all - c.resolved - c.rejected,
+    complaintsInbox: data.meta.inbox,
+  }
+}
+
 // Kartu yang gagal dimuat tetap tampil tanpa angka.
-onMounted(() => Promise.allSettled([loadResidents(), loadLetters()]))
+onMounted(() => Promise.allSettled([loadResidents(), loadLetters(), loadComplaints()]))
 </script>
 
 <template>

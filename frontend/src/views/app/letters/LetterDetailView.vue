@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
-import LetterProgress from '@/components/letters/LetterProgress.vue'
+import TicketProgress from '@/components/TicketProgress.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -311,7 +311,7 @@ async function submitAction() {
         <aside class="flex flex-col gap-6 rounded-2xl bg-white p-6 sm:p-8 xl:w-[380px]">
           <div class="flex flex-col gap-4">
             <h2 class="text-lg font-semibold">Tahapan</h2>
-            <LetterProgress
+            <TicketProgress
               :stages="letter.stages"
               :steps="letter.steps"
               :status="letter.status"
