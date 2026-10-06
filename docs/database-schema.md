@@ -313,10 +313,12 @@ Index: (`village_id`, `status`, `created_at`), (`rt_id`, `status`), (`handling_l
 |---|---|---|
 | `submitted` | verify (RT) | `verified` |
 | `verified` | start (pemegang) | `in_progress` |
-| `verified`, `in_progress` | forward → RW / desa | `forwarded` (`handling_level` berubah) |
-| `forwarded` | accept (penerima) | `in_progress` (RW juga masih bisa meneruskan ke desa) |
+| `verified`, `forwarded`, `in_progress` | forward → RW / desa (hanya ke tingkat di atas pemegang) | `forwarded` (`handling_level` berubah) |
+| `forwarded` | accept (penerima) | `in_progress` (RW tetap bisa meneruskan ke desa, sebelum atau sesudah menerima) |
 | `in_progress` | resolve | `resolved` |
 | `submitted`, `verified`, `forwarded` | reject (alasan wajib) | `rejected` |
+
+Hanya tingkat yang sedang memegang laporan (`handling_level`) yang bisa bertindak. Identitas pelapor dan catatan internal hanya terlihat oleh pengurus di tingkat yang pernah memegang laporan (RT pelapor + tujuan setiap eskalasi); kepala desa dan tingkat lain melihat "Pelapor".
 
 **`complaint_steps`** (timeline, append-only): `complaint_id`, `action` ENUM `submitted, verified, forwarded, accepted, started, resolved, rejected, category_corrected`, `from_level`, `to_level`, `from_status`, `to_status`, `actor_id`, `note`, `created_at`.
 
