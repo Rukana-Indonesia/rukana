@@ -6,12 +6,12 @@ use App\Enums\ComplaintAction;
 use App\Enums\ComplaintStatus;
 use App\Enums\Level;
 use App\Enums\Urgency;
+use App\Models\Concerns\HasRating;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 #[Fillable([
     'code', 'reporter_id', 'village_id', 'rw_id', 'rt_id', 'title', 'description',
@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 ])]
 class Complaint extends Model
 {
+    use HasRating;
+
     protected function casts(): array
     {
         return [
@@ -84,11 +86,6 @@ class Complaint extends Model
     public function aiLabel(): HasOne
     {
         return $this->hasOne(ComplaintAiLabel::class);
-    }
-
-    public function rating(): MorphOne
-    {
-        return $this->morphOne(Rating::class, 'rateable');
     }
 
     /**

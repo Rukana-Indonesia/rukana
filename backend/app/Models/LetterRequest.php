@@ -5,12 +5,12 @@ namespace App\Models;
 use App\Enums\LetterFlow;
 use App\Enums\LetterStatus;
 use App\Enums\Level;
+use App\Models\Concerns\HasRating;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 #[Fillable([
     'code', 'user_id', 'service_type_id', 'flow', 'village_id', 'rw_id', 'rt_id', 'purpose',
@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 #[Hidden(['nik_encrypted'])]
 class LetterRequest extends Model
 {
+    use HasRating;
+
     protected function casts(): array
     {
         return [
@@ -67,10 +69,5 @@ class LetterRequest extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(LetterAttachment::class);
-    }
-
-    public function rating(): MorphOne
-    {
-        return $this->morphOne(Rating::class, 'rateable');
     }
 }
