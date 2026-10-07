@@ -42,6 +42,14 @@ class LetterRequestPolicy
             && ! in_array($letter->status, [LetterStatus::Submitted, LetterStatus::Rejected], true);
     }
 
+    /** Rating 1–5 oleh pemohon setelah surat selesai, sekali per surat (PRD 6.7). */
+    public function rate(User $user, LetterRequest $letter): bool
+    {
+        return $letter->user_id === $user->id
+            && $letter->status === LetterStatus::Completed
+            && ! $letter->hasRating();
+    }
+
     /** NIK utuh hanya dibuka ke operator desa yang memproses surat di kantor desa. */
     public function viewNik(User $user, LetterRequest $letter): bool
     {

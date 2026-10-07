@@ -9,13 +9,14 @@ use App\Enums\Level;
 use App\Models\LetterRequest;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\Notifications\Notifier;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * Mesin status surat pengantar (lihat docs/database-schema.md bagian 4). Semua
  * perpindahan status lewat sini supaya timeline (letter_steps) dan audit log
- * selalu tercatat.
+ * selalu tercatat, dan pemohon serta pengurus tingkat berikutnya diberi tahu.
  *
  * Aksi (nama di URL) → [status asal, tingkat pelaku, aksi di timeline].
  */
@@ -95,6 +96,7 @@ class LetterWorkflow
             ]);
 
             Audit::log('letter.status_changed', $letter, ['from' => $from->value, 'to' => $to->value], $actor);
+            app(Notifier::class)->letterChanged($letter);
 
             return $letter;
         });

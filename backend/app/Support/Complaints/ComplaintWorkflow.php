@@ -10,6 +10,7 @@ use App\Models\Complaint;
 use App\Models\ComplaintCategory;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\Notifications\Notifier;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
@@ -130,6 +131,7 @@ class ComplaintWorkflow
                 'to' => $to->value,
                 'to_level' => $action === 'forward' ? $toLevel->value : null,
             ]), $actor);
+            app(Notifier::class)->complaintChanged($complaint, $action, $note);
 
             return $complaint;
         });

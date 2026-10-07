@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\ComplaintStatus;
 use App\Models\Complaint;
 use App\Models\User;
 use App\Support\Complaints\ComplaintWorkflow;
@@ -65,6 +66,14 @@ class ComplaintPolicy
         }
 
         return $this->handle($user, $complaint);
+    }
+
+    /** Rating 1–5 oleh pelapor setelah laporan selesai, sekali per laporan (PRD 6.7). */
+    public function rate(User $user, Complaint $complaint): bool
+    {
+        return $complaint->reporter_id === $user->id
+            && $complaint->status === ComplaintStatus::Resolved
+            && ! $complaint->hasRating();
     }
 
     /** Catatan antar-pengurus, tidak terlihat pelapor. */
