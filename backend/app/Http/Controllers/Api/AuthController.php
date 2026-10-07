@@ -10,6 +10,7 @@ use App\Http\Resources\UserResource;
 use App\Models\Rt;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\Notifications\Notifier;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request): JsonResponse
+    public function register(RegisterRequest $request, Notifier $notifier): JsonResponse
     {
         $rt = Rt::findOrFail($request->integer('rt_id'));
 
@@ -33,6 +34,7 @@ class AuthController extends Controller
         ]);
 
         Audit::log('user.registered', $user, user: $user);
+        $notifier->residentRegistered($user);
 
         Auth::guard('web')->login($user);
         $request->session()->regenerate();

@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\Complaints\ComplaintWorkflow;
 use App\Support\Complaints\PhotoProcessor;
+use App\Support\Notifications\Notifier;
 use App\Support\TicketCode;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,7 +42,7 @@ use Throwable;
  */
 class ComplaintController extends Controller
 {
-    private const DETAIL = ['category.parent', 'reportedCategory.parent', 'reporter', 'rt', 'rw', 'steps.actor', 'photos', 'comments.user'];
+    private const DETAIL = ['category.parent', 'reportedCategory.parent', 'reporter', 'rt', 'rw', 'steps.actor', 'photos', 'comments.user', 'rating'];
 
     public function __construct(private readonly ComplaintWorkflow $workflow) {}
 
@@ -87,7 +88,7 @@ class ComplaintController extends Controller
         $inboxCount = $level ? $this->inbox($this->complaints($request), $level)->count() : 0;
 
         $complaints = $this->complaints($request)
-            ->with(['category.parent', 'reporter', 'rt', 'rw', 'forwards'])
+            ->with(['category.parent', 'reporter', 'rt', 'rw', 'forwards', 'rating'])
             ->withCount('photos')
             ->when($inbox, fn (Builder $q) => $level ? $this->inbox($q, $level) : $q->whereRaw('1 = 0'))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $status === 'active'
@@ -115,7 +116,7 @@ class ComplaintController extends Controller
         ]);
     }
 
-    public function store(StoreComplaintRequest $request, PhotoProcessor $processor): JsonResponse
+    public function store(StoreComplaintRequest $request, PhotoProcessor $processor, Notifier $notifier): JsonResponse
     {
         $user = $request->user();
         $key = $request->validated('idempotency_key');
@@ -189,6 +190,7 @@ class ComplaintController extends Controller
         }
 
         Audit::log('complaint.submitted', $complaint);
+        $notifier->complaintSubmitted($complaint);
 
         return $this->resource($complaint)
             ->additional(['message' => "Laporan terkirim. Kode tiket Anda {$complaint->code}."])

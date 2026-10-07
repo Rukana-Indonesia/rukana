@@ -103,5 +103,13 @@ return [
         'photos.*' => 'foto',
         'body' => 'tanggapan',
         'target' => 'tujuan',
+        'target_level' => 'target pengumuman',
+        'target_rw_id' => 'RW tujuan',
+        'target_rt_id' => 'RT tujuan',
+        'published_at' => 'tanggal terbit',
+        'expires_at' => 'tanggal kedaluwarsa',
+        'attachments.*' => 'lampiran',
+        'score' => 'rating',
+        'comment' => 'komentar',
     ],
 ];

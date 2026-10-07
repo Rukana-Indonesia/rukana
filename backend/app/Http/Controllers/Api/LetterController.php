@@ -12,6 +12,7 @@ use App\Models\LetterRequest;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Letters\LetterWorkflow;
+use App\Support\Notifications\Notifier;
 use App\Support\TicketCode;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Database\Eloquent\Builder;
@@ -55,7 +56,7 @@ class LetterController extends Controller
             ->pluck('total', 'status');
 
         $letters = $this->letters($request)
-            ->with(['serviceType', 'user', 'rt', 'rw'])
+            ->with(['serviceType', 'user', 'rt', 'rw', 'rating'])
             ->when($inbox, fn (Builder $q) => $q->whereIn('status', $awaiting))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $status === 'active'
                 ? $q->whereNotIn('status', [LetterStatus::Completed, LetterStatus::Rejected])
@@ -80,7 +81,7 @@ class LetterController extends Controller
         ]);
     }
 
-    public function store(StoreLetterRequest $request): JsonResponse
+    public function store(StoreLetterRequest $request, Notifier $notifier): JsonResponse
     {
         $user = $request->user();
         $key = $request->validated('idempotency_key');
@@ -144,6 +145,7 @@ class LetterController extends Controller
         }
 
         Audit::log('letter.submitted', $letter);
+        $notifier->letterSubmitted($letter);
 
         return $this->resource($letter)
             ->additional(['message' => "Pengajuan terkirim. Kode tiket Anda {$letter->code}."])
@@ -227,6 +229,6 @@ class LetterController extends Controller
 
     private function resource(LetterRequest $letter): LetterResource
     {
-        return new LetterResource($letter->loadMissing(['serviceType', 'user', 'rt', 'rw', 'steps.actor', 'attachments']));
+        return new LetterResource($letter->loadMissing(['serviceType', 'user', 'rt', 'rw', 'steps.actor', 'attachments', 'rating']));
     }
 }

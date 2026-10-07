@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\Notifications\Notifier;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -61,7 +62,7 @@ class ResidentController extends Controller
         return $this->resource($user);
     }
 
-    public function verify(Request $request, User $user): UserResource
+    public function verify(Request $request, User $user, Notifier $notifier): UserResource
     {
         Gate::authorize('manageResident', $user);
         $this->ensurePending($user);
@@ -73,6 +74,7 @@ class ResidentController extends Controller
             'rejection_reason' => null,
         ])->save();
         Audit::log('user.verified', $user);
+        $notifier->accountVerified($user);
 
         return $this->resource($user)->additional(['message' => "Akun {$user->name} sudah aktif."]);
     }

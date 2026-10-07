@@ -3,10 +3,13 @@
 use App\Http\Controllers\Api\Admin\OfficialController;
 use App\Http\Controllers\Api\Admin\RegionController as AdminRegionController;
 use App\Http\Controllers\Api\Admin\ServiceTypeController;
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ComplaintController;
 use App\Http\Controllers\Api\LetterController;
 use App\Http\Controllers\Api\LetterPdfController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\RegionController;
 use App\Http\Controllers\Api\ResetPasswordController;
 use App\Http\Controllers\Api\ResidentController;
@@ -50,6 +53,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('letters/{letter}/pdf', LetterPdfController::class);
     Route::get('letters/{letter}/nik', [LetterController::class, 'nik']);
     Route::get('letters/{letter}/attachments/{attachment}', [LetterController::class, 'attachment'])->scopeBindings();
+    Route::post('letters/{letter}/rating', [RatingController::class, 'storeForLetter'])->middleware('role:warga');
     Route::post('letters/{letter}/{action}', [LetterController::class, 'act'])
         ->whereIn('action', LetterWorkflow::ACTIONS)
         ->middleware('role:rt,rw,operator');
@@ -62,10 +66,29 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('complaints/{complaint}', [ComplaintController::class, 'show']);
     Route::get('complaints/{complaint}/photos/{photo}', [ComplaintController::class, 'photo'])->scopeBindings();
     Route::post('complaints/{complaint}/comments', [ComplaintController::class, 'comment'])->middleware('throttle:complaint-comment');
+    Route::post('complaints/{complaint}/rating', [RatingController::class, 'storeForComplaint'])->middleware('role:warga');
     Route::put('complaints/{complaint}/classification', [ComplaintController::class, 'classify'])->middleware('role:rt,rw,operator');
     Route::post('complaints/{complaint}/{action}', [ComplaintController::class, 'act'])
         ->whereIn('action', ComplaintWorkflow::ACTIONS)
         ->middleware('role:rt,rw,operator');
+
+    // Pengumuman bertarget. Siapa boleh membuat/mengubah dan untuk wilayah mana
+    // dicek di AnnouncementPolicy + AnnouncementRequest (target RT/RW dari akun).
+    Route::get('announcements', [AnnouncementController::class, 'index']);
+    Route::post('announcements', [AnnouncementController::class, 'store'])->middleware(['role:rt,rw,operator', 'throttle:announcement-write']);
+    Route::get('announcements/{announcement}', [AnnouncementController::class, 'show']);
+    Route::put('announcements/{announcement}', [AnnouncementController::class, 'update'])->middleware(['role:rt,rw,operator', 'throttle:announcement-write']);
+    Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->middleware('role:rt,rw,operator');
+    Route::get('announcements/{announcement}/attachments/{attachment}', [AnnouncementController::class, 'attachment'])->scopeBindings();
+
+    // Notifikasi lonceng milik akun sendiri.
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll']);
+    Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->whereUuid('id');
+
+    // Rekap rating kepuasan untuk dasbor pengurus (scope wilayah dari akun).
+    Route::get('ratings/summary', [RatingController::class, 'summary'])->middleware('role:rt,rw,operator,kepala_desa');
 
     Route::middleware('role:rt,operator')->group(function () {
         Route::get('residents', [ResidentController::class, 'index']);

@@ -72,6 +72,7 @@ class LetterResource extends JsonResource
                 'size_bytes' => $file->size_bytes,
                 'url' => "/api/letters/{$this->id}/attachments/{$file->id}",
             ])),
+            'rating' => $this->whenLoaded('rating', fn () => $this->rating ? new RatingResource($this->rating) : null),
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'completed_at' => $this->completed_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
@@ -79,6 +80,7 @@ class LetterResource extends JsonResource
                 'actions' => $user ? app(LetterWorkflow::class)->availableActions($user, $this->resource) : [],
                 'print' => (bool) $user?->can('print', $this->resource),
                 'view_nik' => (bool) $user?->can('viewNik', $this->resource),
+                'rate' => (bool) $user?->can('rate', $this->resource),
             ],
         ];
     }
