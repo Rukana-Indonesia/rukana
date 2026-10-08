@@ -42,3 +42,17 @@ export const residencyLabels = { tetap: 'Tetap', kontrak: 'Kontrak', kos: 'Kos' 
 export function whatsappLink(phone, text) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
 }
+
+const relativeFormat = new Intl.RelativeTimeFormat('id-ID', { numeric: 'auto' })
+
+/** '5 menit yang lalu', 'kemarin'; lebih dari seminggu tampil sebagai tanggal. */
+export function timeAgo(iso) {
+  if (!iso) return ''
+  const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000)
+  const abs = Math.abs(seconds)
+  if (abs < 60) return 'baru saja'
+  if (abs < 3600) return relativeFormat.format(Math.round(seconds / 60), 'minute')
+  if (abs < 86400) return relativeFormat.format(Math.round(seconds / 3600), 'hour')
+  if (abs < 7 * 86400) return relativeFormat.format(Math.round(seconds / 86400), 'day')
+  return formatDate(iso)
+}

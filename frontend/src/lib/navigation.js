@@ -19,6 +19,7 @@ export const navigation = [
     icon: 'note',
     roles: [],
   },
+  { name: 'announcements', label: 'Pengumuman', icon: 'sms', roles: [] },
   { name: 'residents', label: 'Data Warga', icon: 'user-search', roles: ['rt', 'operator'] },
   {
     name: 'officials',

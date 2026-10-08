@@ -101,6 +101,46 @@ const router = createRouter({
           meta: { active: true, title: 'Detail Laporan', section: 'complaints' },
         },
         {
+          path: 'pengumuman',
+          name: 'announcements',
+          component: () => import('@/views/app/announcements/AnnouncementsView.vue'),
+          meta: { active: true, title: 'Pengumuman' },
+        },
+        {
+          path: 'pengumuman/buat',
+          name: 'announcement-create',
+          component: () => import('@/views/app/announcements/AnnouncementFormView.vue'),
+          meta: {
+            active: true,
+            roles: ['rt', 'rw', 'operator'],
+            title: 'Buat Pengumuman',
+            section: 'announcements',
+          },
+        },
+        {
+          path: 'pengumuman/:id(\\d+)',
+          name: 'announcement-detail',
+          component: () => import('@/views/app/announcements/AnnouncementDetailView.vue'),
+          meta: { active: true, title: 'Pengumuman', section: 'announcements' },
+        },
+        {
+          path: 'pengumuman/:id(\\d+)/ubah',
+          name: 'announcement-edit',
+          component: () => import('@/views/app/announcements/AnnouncementFormView.vue'),
+          meta: {
+            active: true,
+            roles: ['rt', 'rw', 'operator'],
+            title: 'Ubah Pengumuman',
+            section: 'announcements',
+          },
+        },
+        {
+          path: 'notifikasi',
+          name: 'notifications',
+          component: () => import('@/views/app/NotificationsView.vue'),
+          meta: { active: true, title: 'Notifikasi' },
+        },
+        {
           path: 'layanan',
           name: 'services-admin',
           component: () => import('@/views/app/admin/ServicesAdminView.vue'),
