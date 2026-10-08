@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 
 import AppLogo from '@/components/AppLogo.vue'
+import NotificationBell from '@/components/NotificationBell.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { initials } from '@/lib/format'
 import { navigationFor } from '@/lib/navigation'
@@ -168,14 +169,7 @@ async function logout() {
           {{ route.meta.title ?? 'Rukana' }}
         </p>
 
-        <button
-          type="button"
-          class="hidden size-11 shrink-0 items-center justify-center rounded-2xl border border-desa-background text-desa-secondary transition-all duration-300 hover:border-desa-secondary sm:flex lg:size-14"
-          aria-label="Notifikasi (segera hadir)"
-          title="Notifikasi segera hadir"
-        >
-          <AppIcon name="notification" />
-        </button>
+        <NotificationBell v-if="auth.isActive" />
 
         <div class="flex items-center gap-3 lg:gap-4">
           <span
