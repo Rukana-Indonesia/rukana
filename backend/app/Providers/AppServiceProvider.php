@@ -69,6 +69,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('announcement-write', fn (Request $request) => Limit::perMinute(10)->by('announcement:'.$request->user()?->id));
 
+        // Ekspor membaca seluruh tiket satu periode; cukup longgar untuk dipakai, tidak untuk disapu.
+        RateLimiter::for('recap-export', fn (Request $request) => Limit::perMinute(10)->by('recap-export:'.$request->user()?->id));
+
         RateLimiter::for('complaint-comment', fn (Request $request) => Limit::perMinute(30)->by('complaint-comment:'.$request->user()?->id));
     }
 }

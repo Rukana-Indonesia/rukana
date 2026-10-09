@@ -3,6 +3,8 @@
 namespace App\Support\Scope;
 
 use App\Enums\Level;
+use App\Models\Rt;
+use App\Models\Rw;
 use Illuminate\Contracts\Database\Query\Builder;
 
 /**
@@ -68,6 +70,31 @@ final readonly class RegionScope
             Level::Rt => $rtId === $this->rtId,
             null => $ownerId !== null && $ownerId === $this->userId,
         };
+    }
+
+    /**
+     * Scope yang lebih sempit di dalam scope ini, mis. operator memfilter dasbor ke
+     * satu RW. Null bila wilayah itu di luar scope ini: filter tidak pernah melebarkan akses.
+     */
+    public function narrow(?Rw $rw = null, ?Rt $rt = null): ?self
+    {
+        if ($this->level === null) {
+            return null;
+        }
+
+        if ($rt) {
+            return $this->covers($rt->village_id, $rt->rw_id, $rt->id)
+                ? new self($rt->village_id, Level::Rt, $rt->rw_id, $rt->id)
+                : null;
+        }
+
+        if ($rw) {
+            return $this->level !== Level::Rt && $this->covers($rw->village_id, $rw->id)
+                ? new self($rw->village_id, Level::Rw, $rw->id)
+                : null;
+        }
+
+        return $this;
     }
 
     public function toArray(): array
