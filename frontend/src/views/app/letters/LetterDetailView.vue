@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
+import RatingCard from '@/components/ratings/RatingCard.vue'
 import TicketProgress from '@/components/TicketProgress.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import AppBadge from '@/components/ui/AppBadge.vue'
@@ -27,6 +28,11 @@ const nikLoading = ref(false)
 const copied = ref(false)
 
 const isOwner = computed(() => letter.value?.applicant?.id === auth.user?.id)
+
+function onRated(rating, message) {
+  letter.value = { ...letter.value, rating, can: { ...letter.value.can, rate: false } }
+  notice.value = message
+}
 const actions = computed(() => letter.value?.can.actions ?? [])
 const primaryActions = computed(() => actions.value.filter((a) => a !== 'reject'))
 const history = computed(() => [...(letter.value?.steps ?? [])].reverse())
@@ -224,6 +230,15 @@ async function submitAction() {
           </a>
         </div>
       </section>
+
+      <RatingCard
+        :rating="letter.rating"
+        :can-rate="letter.can.rate"
+        :endpoint="`/letters/${letter.id}/rating`"
+        :is-mine="isOwner"
+        subject="surat"
+        @rated="onRated"
+      />
 
       <div class="flex flex-col gap-[14px] xl:flex-row xl:items-start">
         <!-- Isi pengajuan. -->

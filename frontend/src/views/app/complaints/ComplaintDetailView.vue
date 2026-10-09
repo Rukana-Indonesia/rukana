@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import AuthImage from '@/components/AuthImage.vue'
+import RatingCard from '@/components/ratings/RatingCard.vue'
 import TicketProgress from '@/components/TicketProgress.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import AppBadge from '@/components/ui/AppBadge.vue'
@@ -47,6 +48,11 @@ const shareText = computed(
   () =>
     `Kode tiket laporan saya: ${complaint.value?.code}. ` + `Cek statusnya di ${ticketUrl.value}`,
 )
+
+function onRated(rating, message) {
+  complaint.value = { ...complaint.value, rating, can: { ...complaint.value.can, rate: false } }
+  notice.value = message
+}
 
 async function load() {
   error.value = ''
@@ -302,6 +308,15 @@ async function sendReply() {
           </a>
         </div>
       </section>
+
+      <RatingCard
+        :rating="complaint.rating"
+        :can-rate="complaint.can.rate"
+        :endpoint="`/complaints/${complaint.id}/rating`"
+        :is-mine="complaint.is_mine"
+        subject="laporan"
+        @rated="onRated"
+      />
 
       <div class="flex flex-col gap-[14px] xl:flex-row xl:items-start">
         <div class="flex min-w-0 flex-1 flex-col gap-[14px]">

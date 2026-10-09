@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
+import StarRating from '@/components/ratings/StarRating.vue'
 import AppAlert from '@/components/ui/AppAlert.vue'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -352,6 +353,20 @@ onMounted(() => {
               class="mt-auto line-clamp-2 text-sm font-medium text-[#b0203f]"
             >
               Ditolak {{ complaint.handling_level_label }}: {{ complaint.rejection_reason }}
+            </p>
+            <p
+              v-else-if="complaint.can.rate"
+              class="mt-auto flex items-center gap-2 text-sm font-semibold text-[#8a5300]"
+            >
+              <StarRating :score="0" size="size-4" />
+              Beri rating penanganan
+            </p>
+            <p
+              v-else-if="complaint.rating"
+              class="mt-auto flex items-center gap-2 text-sm font-medium text-desa-secondary"
+            >
+              <StarRating :score="complaint.rating.score" size="size-4" />
+              Rating {{ complaint.rating.score }}/5
             </p>
           </RouterLink>
         </li>
