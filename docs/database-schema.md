@@ -347,13 +347,15 @@ Akurasi = persentase `suggested_* = final_*` pada label yang sudah direview (tar
 
 ### 7. Pengumuman & notifikasi
 
-**`announcements`**: `village_id`, `author_id`, `title`, `body` TEXT, `target_level` ENUM `village, rw, rt`, `target_rw_id` NULL, `target_rt_id` NULL, `published_at`, `expires_at` NULL, `timestamps`, `deleted_at`. Index (`village_id`, `published_at`).
-Aturan: RT hanya boleh menargetkan RT-nya sendiri, RW hanya RW-nya sendiri, operator bebas di dalam desanya (divalidasi lewat ScopeResolver).
-Warga melihat pengumuman yang `target_level = village` ATAU `target_rw_id = rw_id-nya` ATAU `target_rt_id = rt_id-nya`.
+**`announcements`**: `village_id`, `author_id`, `title`, `body` TEXT, `target_level` ENUM `village, rw, rt`, `target_rw_id` NULL, `target_rt_id` NULL, `published_at`, `expires_at` NULL, `notified_at` NULL, `timestamps`, `deleted_at`. Index (`village_id`, `published_at`), (`notified_at`, `published_at`).
+Aturan: RT hanya boleh menargetkan RT-nya sendiri, RW hanya RW-nya sendiri, operator bebas di dalam desanya. Target RT/RW diturunkan dari akun, tidak dibaca dari request.
+Untuk target RT, `target_rw_id` ikut diisi RW induknya.
+Warga dan pengurus RT melihat pengumuman yang `target_level = village` ATAU (`target_level = rw` dan `target_rw_id = rw_id-nya`) ATAU `target_rt_id = rt_id-nya`. Pengurus RW juga melihat pengumuman RT di RW-nya; perangkat desa melihat semua.
+`notified_at` diisi saat notifikasi dikirim (sekali saja). Pengumuman terjadwal dikirim oleh perintah `announcements:notify` yang dijalankan scheduler tiap menit. *(Ditambahkan di Fase 4.)*
 
 **`announcement_attachments`**: `announcement_id`, `disk`, `path`, `original_name`, `mime`, `size_bytes`.
 
-**`notifications`**: tabel bawaan Laravel (`uuid id`, `type`, `notifiable_*`, `data` JSON, `read_at`), untuk ikon lonceng.
+**`notifications`**: tabel bawaan Laravel (`uuid id`, `type`, `notifiable_*`, `data` JSON, `read_at`), untuk ikon lonceng. `type` berisi jenis notifikasi (mis. `letter.ready_for_pickup`, `complaint.forward`, `announcement.published`), bukan nama kelas PHP. `data` berisi `title`, `body`, `url`, `icon`; tidak pernah memuat NIK, dan notifikasi ke pengurus tidak memuat nama pelapor. ID berupa UUID berurutan waktu supaya urutan lonceng stabil.
 
 ### 8. AI
 

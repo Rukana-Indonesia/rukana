@@ -26,6 +26,7 @@ composer install
 cp .env.example .env && php artisan key:generate   # sekali saja
 php artisan migrate --seed
 php artisan serve
+php artisan schedule:work   # terminal terpisah: notifikasi pengumuman terjadwal
 
 # 3. Frontend (http://localhost:5173)
 cd frontend
