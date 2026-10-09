@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\LetterController;
 use App\Http\Controllers\Api\LetterPdfController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RatingController;
+use App\Http\Controllers\Api\RecapController;
 use App\Http\Controllers\Api\RegionController;
 use App\Http\Controllers\Api\ResetPasswordController;
 use App\Http\Controllers\Api\ResidentController;
@@ -89,6 +90,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // Rekap rating kepuasan untuk dasbor pengurus (scope wilayah dari akun).
     Route::get('ratings/summary', [RatingController::class, 'summary'])->middleware('role:rt,rw,operator,kepala_desa');
+
+    // Rekap dasbor per wilayah dan periode. Ekspor Excel/PDF hanya RW dan operator (PRD 9).
+    Route::get('recap', [RecapController::class, 'show'])->middleware('role:rt,rw,operator,kepala_desa');
+    Route::get('recap/export', [RecapController::class, 'export'])->middleware(['role:rw,operator', 'throttle:recap-export']);
 
     Route::middleware('role:rt,operator')->group(function () {
         Route::get('residents', [ResidentController::class, 'index']);
