@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import RatingSummary from '@/components/ratings/RatingSummary.vue'
+import ServiceRecap from '@/components/recap/ServiceRecap.vue'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { api } from '@/lib/api'
@@ -293,6 +294,9 @@ onMounted(() =>
         </component>
       </section>
     </div>
+
+    <!-- Rekap per periode dan wilayah, plus ekspor untuk RW/operator (PRD 6.8, 6.10). -->
+    <ServiceRecap v-if="auth.isStaff" />
 
     <!-- Pengumuman terbaru untuk wilayah akun ini (PRD 6.8). -->
     <section
