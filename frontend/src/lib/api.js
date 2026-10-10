@@ -99,14 +99,37 @@ export async function openFile(path, filename) {
     setTimeout(() => URL.revokeObjectURL(url), 60_000)
   } catch (error) {
     tab?.close()
-    // Respons error berupa Blob; ambil pesannya supaya errorMessage() bisa membacanya.
-    if (error.response?.data instanceof Blob) {
-      try {
-        error.response.data = JSON.parse(await error.response.data.text())
-      } catch {
-        error.response.data = {}
-      }
-    }
-    throw error
+    throw await readBlobError(error)
   }
+}
+
+/**
+ * Unduh berkas dari API (mis. ekspor rekap) dengan nama dari header Content-Disposition.
+ * `path` relatif terhadap /api, mis. '/recap/export'.
+ */
+export async function downloadFile(path, params, fallbackName = 'unduhan') {
+  try {
+    const { data, headers } = await api.get(path, { params, responseType: 'blob' })
+    const disposition = headers['content-disposition'] ?? ''
+    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition)
+    const filename = match ? decodeURIComponent(match[1]) : fallbackName
+    const url = URL.createObjectURL(data)
+    Object.assign(document.createElement('a'), { href: url, download: filename }).click()
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    return filename
+  } catch (error) {
+    throw await readBlobError(error)
+  }
+}
+
+/** Respons error berupa Blob; ambil pesannya supaya errorMessage() bisa membacanya. */
+async function readBlobError(error) {
+  if (error.response?.data instanceof Blob) {
+    try {
+      error.response.data = JSON.parse(await error.response.data.text())
+    } catch {
+      error.response.data = {}
+    }
+  }
+  return error
 }
