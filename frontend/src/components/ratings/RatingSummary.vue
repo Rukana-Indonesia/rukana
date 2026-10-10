@@ -46,7 +46,7 @@ onMounted(async () => {
     <div class="flex flex-col gap-1">
       <h2 id="rating-summary" class="text-lg font-semibold">Kepuasan warga</h2>
       <p class="text-sm text-desa-secondary">
-        Rating 1–5 dari warga setelah surat atau laporannya selesai.
+        Rating 1–5 dari warga setelah surat atau laporannya selesai, sejak awal pemakaian.
       </p>
     </div>
 
