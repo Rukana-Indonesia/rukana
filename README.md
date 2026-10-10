@@ -51,6 +51,10 @@ Semua kata sandi: `password`. Di mode pengembangan, halaman Masuk menampilkan da
 
 Pola no. HP (RW 03/04, RT 01/02): ketua RW `08110000{RW}00`, ketua RT `08110000{RW}{RT}`, warga `0812000{RW tanpa nol}{RT}{01–03}`, warga belum diverifikasi `…09`.
 
+## Rekap & ekspor
+
+Dasbor pengurus (RT, RW, operator, kepala desa) punya panel **Rekap layanan** per periode dan wilayah. RW dan operator bisa mengunduhnya sebagai Excel (`.xlsx`, lewat OpenSpout) atau PDF (dompdf). Surat dan laporan dihitung dari yang masuk dalam periode; rating dari yang diberikan dalam periode. Berkas ekspor tidak memuat NIK, nomor HP, maupun nama pelapor laporan, dan setiap unduhan tercatat di audit log (`export.downloaded`).
+
 ## Tes
 
 ```bash

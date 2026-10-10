@@ -22,6 +22,8 @@ Status: **draf v1 untuk direview** sebelum migrasi Laravel ditulis.
 
 Satu `ScopeResolver` di backend menurunkan scope dari akun yang login. Scope ini dipakai oleh Policy, query dasbor, ekspor, **dan** tool AI. Scope tidak pernah diambil dari input request.
 
+Filter wilayah di dasbor dan ekspor (`rw_id`, `rt_id`) hanya bisa **mempersempit** scope itu lewat `RegionScope::narrow()`; wilayah di luar scope ditolak (403) dan dicatat sebagai `auth.access_denied`. Angka rekap dihitung di satu tempat, `App\Support\Stats\ServiceRecap`, yang juga akan dipakai Monthly Insight dan Ask Rukana supaya angkanya sama dengan dasbor. *(Ditambahkan di Fase 5.)*
+
 ---
 
 ## ERD
