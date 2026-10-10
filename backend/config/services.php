@@ -28,6 +28,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Fitur AI Rukana (Smart Complaint, Monthly Insight, Ask Rukana). Tanpa kunci
+    // API, fitur AI menampilkan "belum dikonfigurasi" dan fitur lain tetap jalan.
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
+        'timeout' => (float) env('ANTHROPIC_TIMEOUT', 90),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
