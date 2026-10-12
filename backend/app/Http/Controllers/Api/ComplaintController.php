@@ -9,10 +9,12 @@ use App\Enums\Urgency;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Complaints\StoreComplaintRequest;
 use App\Http\Resources\ComplaintResource;
+use App\Jobs\ClassifyComplaint;
 use App\Models\Complaint;
 use App\Models\ComplaintCategory;
 use App\Models\ComplaintPhoto;
 use App\Models\User;
+use App\Support\Ai\SmartComplaint;
 use App\Support\Audit;
 use App\Support\Complaints\ComplaintWorkflow;
 use App\Support\Complaints\PhotoProcessor;
@@ -42,7 +44,7 @@ use Throwable;
  */
 class ComplaintController extends Controller
 {
-    private const DETAIL = ['category.parent', 'reportedCategory.parent', 'reporter', 'rt', 'rw', 'steps.actor', 'photos', 'comments.user', 'rating'];
+    private const DETAIL = ['category.parent', 'reportedCategory.parent', 'reporter', 'rt', 'rw', 'steps.actor', 'photos', 'comments.user', 'rating', 'aiLabel.suggestedCategory.parent'];
 
     public function __construct(private readonly ComplaintWorkflow $workflow) {}
 
@@ -116,7 +118,7 @@ class ComplaintController extends Controller
         ]);
     }
 
-    public function store(StoreComplaintRequest $request, PhotoProcessor $processor, Notifier $notifier): JsonResponse
+    public function store(StoreComplaintRequest $request, PhotoProcessor $processor, Notifier $notifier, SmartComplaint $smartComplaint): JsonResponse
     {
         $user = $request->user();
         $key = $request->validated('idempotency_key');
@@ -192,6 +194,10 @@ class ComplaintController extends Controller
         Audit::log('complaint.submitted', $complaint);
         $notifier->complaintSubmitted($complaint);
 
+        // Saran AI disusun di queue; pengurus melihat "AI sedang menganalisis" sampai selesai.
+        $smartComplaint->queue($complaint);
+        ClassifyComplaint::dispatch($complaint);
+
         return $this->resource($complaint)
             ->additional(['message' => "Laporan terkirim. Kode tiket Anda {$complaint->code}."])
             ->response()
@@ -259,6 +265,17 @@ class ComplaintController extends Controller
         );
 
         return $this->resource($complaint)->additional(['message' => 'Kategori dan urgensi disimpan.']);
+    }
+
+    /** Ulangi Smart Complaint yang gagal (mis. AI belum dikonfigurasi atau sedang tidak bisa dihubungi). */
+    public function retryAi(Complaint $complaint, SmartComplaint $smartComplaint): ComplaintResource
+    {
+        Gate::authorize('retryAi', $complaint);
+
+        $smartComplaint->queue($complaint);
+        ClassifyComplaint::dispatch($complaint);
+
+        return $this->resource($complaint->unsetRelation('aiLabel'))->additional(['message' => 'Saran AI sedang disusun ulang.']);
     }
 
     /** Tanggapan untuk pelapor, atau catatan internal antar-pengurus. */

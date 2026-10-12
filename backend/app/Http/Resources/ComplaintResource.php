@@ -97,6 +97,10 @@ class ComplaintResource extends JsonResource
                     'created_at' => $comment->created_at?->toIso8601String(),
                 ])),
             'rating' => $this->whenLoaded('rating', fn () => $this->rating ? new RatingResource($this->rating) : null),
+            'ai_label' => $this->when(
+                $this->relationLoaded('aiLabel') && (bool) $user?->can('viewAiLabel', $this->resource),
+                fn () => $this->aiLabel ? new ComplaintAiLabelResource($this->aiLabel) : null,
+            ),
             'created_at' => $this->created_at?->toIso8601String(),
             'verified_at' => $this->verified_at?->toIso8601String(),
             'resolved_at' => $this->resolved_at?->toIso8601String(),
@@ -111,6 +115,7 @@ class ComplaintResource extends JsonResource
                 'comment_internal' => $showInternal,
                 'view_reporter' => $showReporter,
                 'rate' => (bool) $user?->can('rate', $this->resource),
+                'retry_ai' => (bool) $user?->can('retryAi', $this->resource),
             ],
         ];
     }

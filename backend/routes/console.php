@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Pengumuman terjadwal: kirim notifikasi lonceng saat terbit.
 Schedule::command('announcements:notify')->everyMinute()->withoutOverlapping();
+
+// Monthly Insight bulan lalu untuk desa dan tiap RW (butuh queue worker yang jalan).
+Schedule::command('insights:generate')->monthlyOn(1, '06:00')->timezone('Asia/Jakarta');

@@ -70,6 +70,9 @@ return [
     'uuid' => ':Attribute tidak valid.',
 
     'attributes' => [
+        'question' => 'pertanyaan',
+        'conversation_id' => 'percakapan',
+        'month' => 'bulan',
         'name' => 'nama',
         'phone' => 'no. HP',
         'password' => 'kata sandi',
