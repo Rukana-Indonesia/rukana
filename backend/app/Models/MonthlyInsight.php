@@ -18,6 +18,8 @@ class MonthlyInsight extends Model
         return [
             'period' => 'date',
             'metrics' => 'array',
+            // {ringkasan, sorotan[], perlu_perhatian[]}, atau {error} bila gagal.
+            'narrative' => 'array',
             'status' => AiTaskStatus::class,
             'generated_at' => 'datetime',
         ];
@@ -31,5 +33,10 @@ class MonthlyInsight extends Model
     public function rw(): BelongsTo
     {
         return $this->belongsTo(Rw::class);
+    }
+
+    public function generator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'generated_by');
     }
 }
