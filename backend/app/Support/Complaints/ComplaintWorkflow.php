@@ -9,6 +9,7 @@ use App\Enums\Urgency;
 use App\Models\Complaint;
 use App\Models\ComplaintCategory;
 use App\Models\User;
+use App\Support\Ai\SmartComplaint;
 use App\Support\Audit;
 use App\Support\Notifications\Notifier;
 use Illuminate\Support\Facades\DB;
@@ -133,6 +134,11 @@ class ComplaintWorkflow
             ]), $actor);
             app(Notifier::class)->complaintChanged($complaint, $action, $note);
 
+            // Tingkat yang akhirnya menyelesaikan laporan = keputusan level untuk evaluasi Smart Complaint.
+            if ($to === ComplaintStatus::Resolved) {
+                app(SmartComplaint::class)->recordReview($complaint, $actor, final: true);
+            }
+
             return $complaint;
         });
     }
@@ -166,6 +172,8 @@ class ComplaintWorkflow
                     'note' => "{$old->name} → {$category->name}",
                 ]);
             }
+
+            app(SmartComplaint::class)->recordReview($complaint, $actor);
 
             Audit::log('complaint.classified', $complaint, [
                 'category_id' => $category->id,

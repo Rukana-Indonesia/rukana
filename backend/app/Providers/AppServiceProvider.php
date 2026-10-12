@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Enums\Role;
+use App\Models\AiConversation;
 use App\Models\Announcement;
 use App\Models\Complaint;
 use App\Models\LetterRequest;
@@ -12,6 +13,8 @@ use App\Models\Rw;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\Village;
+use App\Support\Ai\AiGateway;
+use App\Support\Ai\AnthropicGateway;
 use App\Support\Phone;
 use App\Support\Scope\ScopeResolver;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -27,6 +30,12 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ScopeResolver::class);
+
+        $this->app->singleton(AiGateway::class, fn () => new AnthropicGateway(
+            config('services.anthropic.key'),
+            config('services.anthropic.model'),
+            config('services.anthropic.timeout'),
+        ));
     }
 
     public function boot(): void
@@ -45,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
             'complaint' => Complaint::class,
             'announcement' => Announcement::class,
             'monthly_insight' => MonthlyInsight::class,
+            'ai_conversation' => AiConversation::class,
         ]);
 
         // RW/RT hanya dikelola operator di desanya sendiri.
@@ -71,6 +81,14 @@ class AppServiceProvider extends ServiceProvider
 
         // Ekspor membaca seluruh tiket satu periode; cukup longgar untuk dipakai, tidak untuk disapu.
         RateLimiter::for('recap-export', fn (Request $request) => Limit::perMinute(10)->by('recap-export:'.$request->user()?->id));
+
+        // Setiap pertanyaan Ask Rukana dan susun ulang insight memanggil LLM berbayar.
+        RateLimiter::for('ai-ask', fn (Request $request) => [
+            Limit::perMinute(6)->by('ai-ask:'.$request->user()?->id),
+            Limit::perDay(100)->by('ai-ask-day:'.$request->user()?->id),
+        ]);
+
+        RateLimiter::for('ai-generate', fn (Request $request) => Limit::perMinute(5)->by('ai-generate:'.$request->user()?->id));
 
         RateLimiter::for('complaint-comment', fn (Request $request) => Limit::perMinute(30)->by('complaint-comment:'.$request->user()?->id));
     }

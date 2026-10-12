@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\AiTaskStatus;
 use App\Enums\ComplaintStatus;
 use App\Models\Complaint;
 use App\Models\User;
@@ -74,6 +75,26 @@ class ComplaintPolicy
         return $complaint->reporter_id === $user->id
             && $complaint->status === ComplaintStatus::Resolved
             && ! $complaint->hasRating();
+    }
+
+    /**
+     * Saran Smart Complaint: pengurus dan perangkat desa yang bisa membuka laporan.
+     * Pelapor tidak melihatnya (saran belum tentu keputusan).
+     */
+    public function viewAiLabel(User $user, Complaint $complaint): bool
+    {
+        return $user->role->isStaff() && $this->view($user, $complaint);
+    }
+
+    /**
+     * Minta saran ulang bila belum ada atau gagal: pengurus yang menangani, selama
+     * laporan belum final. Saran yang sudah jadi tidak ditimpa (dipakai evaluasi).
+     */
+    public function retryAi(User $user, Complaint $complaint): bool
+    {
+        return ! $complaint->status->isFinal()
+            && in_array($complaint->aiLabel?->status, [null, AiTaskStatus::Failed], true)
+            && $this->handle($user, $complaint);
     }
 
     /** Catatan antar-pengurus, tidak terlihat pelapor. */
