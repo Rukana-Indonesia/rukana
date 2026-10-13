@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
+import SmartComplaintCard from '@/components/ai/SmartComplaintCard.vue'
 import AuthImage from '@/components/AuthImage.vue'
 import RatingCard from '@/components/ratings/RatingCard.vue'
 import TicketProgress from '@/components/TicketProgress.vue'
@@ -48,6 +49,11 @@ const shareText = computed(
   () =>
     `Kode tiket laporan saya: ${complaint.value?.code}. ` + `Cek statusnya di ${ticketUrl.value}`,
 )
+
+function onAiUpdated(data, message) {
+  complaint.value = data
+  if (message) notice.value = message
+}
 
 function onRated(rating, message) {
   complaint.value = { ...complaint.value, rating, can: { ...complaint.value.can, rate: false } }
@@ -308,6 +314,13 @@ async function sendReply() {
           </a>
         </div>
       </section>
+
+      <!-- Saran AI hanya dikirim backend untuk pengurus dan perangkat desa. -->
+      <SmartComplaintCard
+        v-if="'ai_label' in complaint"
+        :complaint="complaint"
+        @updated="onAiUpdated"
+      />
 
       <RatingCard
         :rating="complaint.rating"
