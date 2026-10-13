@@ -58,3 +58,50 @@ export function decimal(value) {
     ? '—'
     : value.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
+
+/** Kartu angka rekap. Dipakai dasbor dan Ringkasan Bulanan supaya angkanya tampil sama. */
+export function recapTiles(s) {
+  const l = s.letters
+  const c = s.complaints
+  return [
+    {
+      label: 'Surat masuk',
+      icon: 'document-text',
+      value: l.total,
+      caption: `${l.completed} selesai · ${l.active} berjalan · ${l.rejected} ditolak`,
+    },
+    {
+      label: 'Rata-rata proses surat',
+      icon: 'timer',
+      value: decimal(l.avg_process_days),
+      unit: l.avg_process_days === null ? '' : 'hari',
+      caption: l.completed ? `dari ${l.completed} surat selesai` : 'Belum ada surat selesai',
+    },
+    {
+      label: 'Laporan masuk',
+      icon: 'note',
+      value: c.total,
+      caption: `${c.resolved} selesai · ${c.active} berjalan · ${c.rejected} ditolak`,
+    },
+    {
+      label: 'Rata-rata penyelesaian laporan',
+      icon: 'timer',
+      value: decimal(c.avg_resolve_days),
+      unit: c.avg_resolve_days === null ? '' : 'hari',
+      caption: c.resolved ? `dari ${c.resolved} laporan selesai` : 'Belum ada laporan selesai',
+    },
+    {
+      label: 'Laporan diteruskan',
+      icon: 'arrow-square-right',
+      value: c.forwarded,
+      caption: `${c.escalated_village.total} dieskalasi ke desa`,
+    },
+    {
+      label: 'Rata-rata rating',
+      icon: 'tick-circle',
+      value: decimal(s.ratings.average),
+      unit: s.ratings.average === null ? '' : '/ 5',
+      caption: s.ratings.total ? `dari ${s.ratings.total} rating` : 'Belum ada rating',
+    },
+  ]
+}

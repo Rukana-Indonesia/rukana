@@ -20,6 +20,18 @@ export const navigation = [
     roles: [],
   },
   { name: 'announcements', label: 'Pengumuman', icon: 'sms', roles: [] },
+  {
+    name: 'insights',
+    label: 'Ringkasan Bulanan',
+    icon: 'status-up',
+    roles: ['rw', 'operator', 'kepala_desa'],
+  },
+  {
+    name: 'ask',
+    label: 'Ask Rukana',
+    icon: 'message-question',
+    roles: ['rt', 'rw', 'operator', 'kepala_desa'],
+  },
   { name: 'residents', label: 'Data Warga', icon: 'user-search', roles: ['rt', 'operator'] },
   {
     name: 'officials',

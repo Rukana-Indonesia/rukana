@@ -135,6 +135,26 @@ const router = createRouter({
           },
         },
         {
+          path: 'ask',
+          name: 'ask',
+          component: () => import('@/views/app/ai/AskView.vue'),
+          meta: {
+            active: true,
+            roles: ['rt', 'rw', 'operator', 'kepala_desa'],
+            title: 'Ask Rukana',
+          },
+        },
+        {
+          path: 'ringkasan-bulanan',
+          name: 'insights',
+          component: () => import('@/views/app/ai/InsightView.vue'),
+          meta: {
+            active: true,
+            roles: ['rw', 'operator', 'kepala_desa'],
+            title: 'Ringkasan Bulanan',
+          },
+        },
+        {
           path: 'notifikasi',
           name: 'notifications',
           component: () => import('@/views/app/NotificationsView.vue'),
