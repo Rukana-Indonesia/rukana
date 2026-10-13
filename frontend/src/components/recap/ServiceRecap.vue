@@ -13,6 +13,7 @@ import {
   letterStatusLabels,
   periodOptions,
   periodRange,
+  recapTiles,
 } from '@/lib/recap'
 import { useAuthStore } from '@/stores/auth'
 
@@ -75,53 +76,7 @@ const regionOptions = computed(() => {
   return []
 })
 
-const tiles = computed(() => {
-  const s = summary.value
-  if (!s) return []
-  const l = s.letters
-  const c = s.complaints
-  return [
-    {
-      label: 'Surat masuk',
-      icon: 'document-text',
-      value: l.total,
-      caption: `${l.completed} selesai · ${l.active} berjalan · ${l.rejected} ditolak`,
-    },
-    {
-      label: 'Rata-rata proses surat',
-      icon: 'timer',
-      value: decimal(l.avg_process_days),
-      unit: l.avg_process_days === null ? '' : 'hari',
-      caption: l.completed ? `dari ${l.completed} surat selesai` : 'Belum ada surat selesai',
-    },
-    {
-      label: 'Laporan masuk',
-      icon: 'note',
-      value: c.total,
-      caption: `${c.resolved} selesai · ${c.active} berjalan · ${c.rejected} ditolak`,
-    },
-    {
-      label: 'Rata-rata penyelesaian laporan',
-      icon: 'timer',
-      value: decimal(c.avg_resolve_days),
-      unit: c.avg_resolve_days === null ? '' : 'hari',
-      caption: c.resolved ? `dari ${c.resolved} laporan selesai` : 'Belum ada laporan selesai',
-    },
-    {
-      label: 'Laporan diteruskan',
-      icon: 'arrow-square-right',
-      value: c.forwarded,
-      caption: `${c.escalated_village.total} dieskalasi ke desa`,
-    },
-    {
-      label: 'Rata-rata rating',
-      icon: 'tick-circle',
-      value: decimal(s.ratings.average),
-      unit: s.ratings.average === null ? '' : '/ 5',
-      caption: s.ratings.total ? `dari ${s.ratings.total} rating` : 'Belum ada rating',
-    },
-  ]
-})
+const tiles = computed(() => (summary.value ? recapTiles(summary.value) : []))
 
 const statusItems = (counts, labels) =>
   Object.entries(labels).map(([key, label]) => ({ label, total: counts[key] ?? 0 }))
