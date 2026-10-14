@@ -341,7 +341,7 @@ Hanya tingkat yang sedang memegang laporan (`handling_level`) yang bisa bertinda
 | `final_category_id`, `final_urgency`, `final_level` | keputusan pengurus |
 | `reviewed_by`, `reviewed_at` | |
 
-Akurasi = persentase `suggested_* = final_*` pada label yang sudah direview (target ≥ 80%).
+Akurasi = persentase `suggested_* = final_*` pada label yang sudah direview (target ≥ 80%), per `prompt_version`. `final_category_id`/`final_urgency` diisi saat pengurus menyimpan kategori & urgensi (termasuk tombol "Pakai saran"); `final_level` diisi saat laporan selesai, yaitu tingkat yang akhirnya menanganinya. Saran yang sudah jadi tidak bisa diminta ulang; yang gagal bisa. *(Fase 6.)*
 
 ### 6. Rating
 
@@ -363,11 +363,13 @@ Warga dan pengurus RT melihat pengumuman yang `target_level = village` ATAU (`ta
 
 **`ai_conversations`**: `user_id`, `scope_level`, `scope_id` (snapshot scope saat percakapan dibuat), `title`, `timestamps`.
 
-**`ai_messages`**: `ai_conversation_id`, `role` ENUM `user, assistant`, `content` TEXT, `model`, `input_tokens`, `output_tokens`, `created_at`. *(Ditambahkan; di PRD belum ada tempat untuk isi percakapan.)*
+**`ai_messages`**: `ai_conversation_id`, `role` ENUM `user, assistant`, `content` TEXT, `tools` JSON NULL (tool yang dipakai untuk jawaban: nama, label, status `ok|error|denied`, wilayah, periode; ditampilkan sebagai "sumber data"), `model`, `input_tokens`, `output_tokens`, `created_at`. *(Ditambahkan; di PRD belum ada tempat untuk isi percakapan. `tools` ditambahkan di Fase 6.)*
+
+Ask Rukana hanya punya tool `get_complaint_summary`, `get_letter_stats`, `get_pending_items`, `get_rating_summary`, dan (khusus akun tingkat desa) `get_village_summary`. Model hanya boleh menyebut nomor RW/RT dan tanggal; scope selalu dari akun dan dipersempit lewat `RegionScope::narrow()`. Permintaan di luar scope dicatat `denied` di `ai_tool_calls` dan `auth.access_denied` di `audit_logs`.
 
 **`ai_tool_calls`** (append-only): `feature` ENUM `ask, smart_complaint, monthly_insight`, `user_id` NULL, `ai_conversation_id` NULL, `subject_type`/`subject_id` NULL (mis. complaint), `tool_name`, `arguments` JSON (**termasuk scope yang disisipkan backend**), `result` JSON (agregat saja, tanpa data pribadi), `status`, `duration_ms`, `created_at`. Tabel ini menjadi bukti untuk UAT 11.
 
-**`monthly_insights`**: `village_id`, `rw_id` NULL (NULL = tingkat desa), `period` DATE (tanggal 1 bulan tsb), `metrics` JSON (**angka yang dihitung backend**, jadi narasi dan dasbor dijamin memakai angka yang sama), `narrative` TEXT, `model`, `generated_by`, `generated_at`, `status`. UNIQUE(`village_id`, `rw_id`, `period`). *(Ditambahkan supaya insight tidak di-generate ulang setiap kali dibuka.)*
+**`monthly_insights`**: `village_id`, `rw_id` NULL (NULL = tingkat desa), `period` DATE (tanggal 1 bulan tsb), `metrics` JSON (**angka yang dihitung backend** lewat `ServiceRecap`, tanpa antrean saat ini, jadi narasi dan dasbor dijamin memakai angka yang sama), `narrative` TEXT berisi JSON `{ringkasan, sorotan[], perlu_perhatian[]}` (atau `{error}` bila gagal; setiap angka di narasi dicek terhadap `metrics`), `model`, `generated_by`, `generated_at`, `status`. UNIQUE(`village_id`, `rw_id`, `period`). *(Ditambahkan supaya insight tidak di-generate ulang setiap kali dibuka.)*
 
 ### 9. Sistem
 

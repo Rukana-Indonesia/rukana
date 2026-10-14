@@ -26,7 +26,8 @@ composer install
 cp .env.example .env && php artisan key:generate   # sekali saja
 php artisan migrate --seed
 php artisan serve
-php artisan schedule:work   # terminal terpisah: notifikasi pengumuman terjadwal
+php artisan schedule:work   # terminal terpisah: pengumuman terjadwal + Monthly Insight tiap tanggal 1
+php artisan queue:work --timeout=300   # terminal terpisah: Smart Complaint dan Monthly Insight
 
 # 3. Frontend (http://localhost:5173)
 cd frontend
@@ -54,6 +55,16 @@ Pola no. HP (RW 03/04, RT 01/02): ketua RW `08110000{RW}00`, ketua RT `08110000{
 ## Rekap & ekspor
 
 Dasbor pengurus (RT, RW, operator, kepala desa) punya panel **Rekap layanan** per periode dan wilayah. RW dan operator bisa mengunduhnya sebagai Excel (`.xlsx`, lewat OpenSpout) atau PDF (dompdf). Surat dan laporan dihitung dari yang masuk dalam periode; rating dari yang diberikan dalam periode. Berkas ekspor tidak memuat NIK, nomor HP, maupun nama pelapor laporan, dan setiap unduhan tercatat di audit log (`export.downloaded`).
+
+## Fitur AI (Claude)
+
+Tiga fitur memakai Claude lewat SDK resmi `anthropic-ai/sdk`. Isi `ANTHROPIC_API_KEY` di `backend/.env`; model bawaan `claude-opus-5-5` (ganti lewat `ANTHROPIC_MODEL`). Tanpa kunci, aplikasi tetap jalan dan fitur AI menampilkan "belum dikonfigurasi".
+
+- **Smart Complaint**: setiap laporan baru dianalisis di queue (perlu `queue:work`). Pengurus melihat saran kategori, urgensi, tingkat penanganan, dan ringkasan di detail laporan. AI tidak mengubah laporan; keputusan pengurus dicatat untuk menghitung ketepatan (tampil di Ringkasan Bulanan). Nama, no. HP, dan patokan lokasi pelapor tidak dikirim ke AI.
+- **Ringkasan Bulanan (Monthly Insight)**: angka dihitung `ServiceRecap` (sama dengan dasbor), AI hanya menyusun narasi. Setiap angka di narasi dicek terhadap data; narasi dengan angka lain ditolak. Disusun otomatis tiap tanggal 1 untuk bulan lalu (`insights:generate`), atau oleh RW/operator dari menu.
+- **Ask Rukana**: RT, RW, operator, dan kepala desa bertanya dalam bahasa sehari-hari. AI hanya bisa memanggil tool rekap; scope wilayah disisipkan backend dari akun, jadi pertanyaan tentang wilayah lain ditolak dan tercatat.
+
+Semua pemanggilan AI dan tool tercatat di `ai_tool_calls` dan `audit_logs` (`ai.invoked`). Tes tidak pernah memanggil API (memakai `Tests\Support\FakeAiGateway`).
 
 ## Tes
 
