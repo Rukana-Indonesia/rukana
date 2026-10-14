@@ -73,6 +73,13 @@ return [
     // Alamat aplikasi Vue, untuk tautan di PDF (mis. halaman cek tiket).
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
 
+    // Titik tengah peta sebaran laporan bila belum ada titik laporan di wilayah itu.
+    'map_center' => [
+        'latitude' => (float) env('MAP_CENTER_LAT', -6.9147),
+        'longitude' => (float) env('MAP_CENTER_LNG', 107.6098),
+        'zoom' => (int) env('MAP_CENTER_ZOOM', 15),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
