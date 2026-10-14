@@ -106,7 +106,7 @@ class AskTools
         return [$result, $status];
     }
 
-    /** @return array{0: array, 1: string, 2: ?RegionScope} */
+    /** @return array{0: array<string, mixed>, 1: 'ok'|'error'|'denied', 2: ?RegionScope} */
     private function dispatch(string $name, array $input, RegionScope $scope): array
     {
         if ($name === 'get_village_summary' && $scope->level !== Level::Village) {
