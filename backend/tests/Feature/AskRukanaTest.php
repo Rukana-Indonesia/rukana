@@ -174,6 +174,21 @@ class AskRukanaTest extends TestCase
         $this->assertSame('denied', AiToolCall::sole()->status);
     }
 
+    public function test_village_tool_schemas_stay_within_the_strict_union_limit(): void
+    {
+        $operator = User::where('role', Role::Operator)->firstOrFail();
+        $this->ai->text('Belum ada data.');
+
+        $this->actingAs($operator)->postJson('/api/ask', ['question' => 'Ringkasan desa?'])->assertCreated();
+
+        // API menolak skema strict dengan lebih dari 16 parameter union (mis. integer|null).
+        $unions = collect($this->ai->requests[0]['options']['tools'])
+            ->flatMap(fn ($tool) => array_values($tool['inputSchema']['properties']))
+            ->filter(fn ($property) => is_array($property['type']) || isset($property['anyOf']))
+            ->count();
+        $this->assertLessThanOrEqual(16, $unions);
+    }
+
     public function test_conversation_continues_with_history_and_is_private(): void
     {
         $this->ai->tools([['get_pending_items', ['rw' => null, 'rt' => null]]])->text('Ada 1 laporan yang belum selesai di RT 02.');

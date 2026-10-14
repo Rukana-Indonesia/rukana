@@ -32,13 +32,15 @@ class AskTools
     public function definitions(RegionScope $scope): array
     {
         $region = [
-            'rw' => ['type' => ['integer', 'null'], 'description' => 'Nomor RW, mis. 3 untuk "RW 03". null = seluruh wilayah penanya.'],
-            'rt' => ['type' => ['integer', 'null'], 'description' => 'Nomor RT, mis. 2 untuk "RT 02". Untuk penanya tingkat desa, isi juga rw. null = semua RT.'],
+            'rw' => ['type' => 'integer', 'description' => 'Nomor RW, mis. 3 untuk "RW 03". Kosongkan untuk seluruh wilayah penanya.'],
+            'rt' => ['type' => 'integer', 'description' => 'Nomor RT, mis. 2 untuk "RT 02". Untuk penanya tingkat desa, isi juga rw. Kosongkan untuk semua RT.'],
         ];
         $period = [
-            'from' => ['type' => ['string', 'null'], 'description' => 'Tanggal awal YYYY-MM-DD (WIB). null = awal bulan ini.'],
-            'to' => ['type' => ['string', 'null'], 'description' => 'Tanggal akhir YYYY-MM-DD (WIB), termasuk. null = akhir bulan ini, atau hari ini bila from diisi.'],
+            'from' => ['type' => 'string', 'description' => 'Tanggal awal YYYY-MM-DD (WIB). Kosongkan untuk awal bulan ini.'],
+            'to' => ['type' => 'string', 'description' => 'Tanggal akhir YYYY-MM-DD (WIB), termasuk. Kosongkan untuk akhir bulan ini, atau hari ini bila from diisi.'],
         ];
+        // Parameter opsional, bukan union dengan null: API membatasi skema strict
+        // paling banyak 16 parameter union di semua tool, dan akun desa punya 17.
         $tool = fn (string $name, string $description, array $properties) => [
             'name' => $name,
             'description' => $description,
@@ -46,7 +48,7 @@ class AskTools
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => $properties,
-                'required' => array_keys($properties),
+                'required' => [],
                 'additionalProperties' => false,
             ],
         ];
@@ -55,7 +57,7 @@ class AskTools
             $tool('get_complaint_summary', 'Rekap laporan warga yang MASUK dalam periode: jumlah, selesai, berjalan, ditolak, per status, eskalasi ke desa, rata-rata hari penyelesaian, kategori terbanyak, dan rincian per RT (termasuk jumlah per kategori). Bisa difilter satu kategori.', [
                 ...$region,
                 ...$period,
-                'category' => ['type' => ['string', 'null'], 'description' => 'Nama kategori atau subkategori, mis. "Sampah Menumpuk" atau "Infrastruktur". null = semua.'],
+                'category' => ['type' => 'string', 'description' => 'Nama kategori atau subkategori, mis. "Sampah Menumpuk" atau "Infrastruktur". Kosongkan untuk semua kategori.'],
             ]),
             $tool('get_letter_stats', 'Rekap surat pengantar yang DIAJUKAN dalam periode: jumlah, selesai, berjalan, ditolak, per status, rata-rata hari proses, layanan terbanyak, dan rincian per RT.', [...$region, ...$period]),
             $tool('get_pending_items', 'Antrean SAAT INI (tidak terikat periode): akun warga menunggu verifikasi, surat menunggu tindakan per tingkat, surat siap diambil, laporan belum selesai per tingkat.', $region),
