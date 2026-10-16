@@ -78,6 +78,7 @@ return [
         'password' => 'kata sandi',
         'current_password' => 'kata sandi lama',
         'role' => 'peran',
+        'status' => 'status',
         'rw_id' => 'RW',
         'rt_id' => 'RT',
         'from' => 'tanggal awal',
