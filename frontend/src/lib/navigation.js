@@ -19,6 +19,12 @@ export const navigation = [
     icon: 'note',
     roles: [],
   },
+  {
+    name: 'complaint-map',
+    label: 'Peta Laporan',
+    icon: 'map',
+    roles: ['rt', 'rw', 'operator', 'kepala_desa'],
+  },
   { name: 'announcements', label: 'Pengumuman', icon: 'sms', roles: [] },
   {
     name: 'insights',

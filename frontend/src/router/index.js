@@ -101,6 +101,16 @@ const router = createRouter({
           meta: { active: true, title: 'Detail Laporan', section: 'complaints' },
         },
         {
+          path: 'peta-laporan',
+          name: 'complaint-map',
+          component: () => import('@/views/app/complaints/ComplaintMapView.vue'),
+          meta: {
+            active: true,
+            roles: ['rt', 'rw', 'operator', 'kepala_desa'],
+            title: 'Peta Sebaran Laporan',
+          },
+        },
+        {
           path: 'pengumuman',
           name: 'announcements',
           component: () => import('@/views/app/announcements/AnnouncementsView.vue'),

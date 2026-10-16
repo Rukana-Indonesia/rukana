@@ -33,6 +33,40 @@ export function periodRange(preset, today = new Date()) {
   }
 }
 
+/**
+ * Pilihan filter wilayah di dalam scope akun: desa → RW (dengan RT-nya), RW → RT,
+ * RT → tidak ada pilihan. `rts` berisi { id, label, rw: { id, label } }.
+ */
+export function regionSelectOptions({ level, label, rws = [], rts = [] }) {
+  if (level === 'village') {
+    return [
+      { value: 'all', label: `Seluruh ${label}` },
+      ...rws.map((rw) => ({
+        label: rw.label,
+        options: [
+          { value: `rw:${rw.id}`, label: `${rw.label} — semua RT` },
+          ...rts
+            .filter((rt) => rt.rw.id === rw.id)
+            .map((rt) => ({ value: `rt:${rt.id}`, label: `${rt.label}/${rw.label}` })),
+        ],
+      })),
+    ]
+  }
+  if (level === 'rw') {
+    return [
+      { value: 'all', label: `Seluruh ${label}` },
+      ...rts.map((rt) => ({ value: `rt:${rt.id}`, label: `${rt.label}/${rt.rw.label}` })),
+    ]
+  }
+  return []
+}
+
+/** 'rw:3' / 'rt:7' / 'all' → { rw_id, rt_id } untuk parameter API. */
+export function regionParams(value) {
+  const [kind, id] = value.split(':')
+  return { rw_id: kind === 'rw' ? id : undefined, rt_id: kind === 'rt' ? id : undefined }
+}
+
 export const letterStatusLabels = {
   submitted: 'Diajukan',
   rt_verified: 'Diverifikasi RT',
