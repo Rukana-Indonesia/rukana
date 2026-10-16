@@ -111,7 +111,7 @@ class AskRukanaTest extends TestCase
         $this->assertSame($dashboard['resolved'], $own['laporan']['selesai']);
 
         // Data RT 01 dan nama pelapor tidak pernah dikirim ke model.
-        $this->assertStringNotContainsString('RT 01', json_encode(array_column($this->toolResults(2), 'content')));
+        $this->assertStringNotContainsString('RT 01', (string) json_encode(array_column($this->toolResults(2), 'content')));
         $this->assertStringNotContainsString('Pelapor', $this->ai->sentText());
 
         // Semua panggilan tercatat dengan scope yang disisipkan backend.
