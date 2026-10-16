@@ -14,6 +14,8 @@ import {
   periodOptions,
   periodRange,
   recapTiles,
+  regionParams,
+  regionSelectOptions,
 } from '@/lib/recap'
 import { useAuthStore } from '@/stores/auth'
 
@@ -40,40 +42,15 @@ const exporting = ref('')
 const exportError = ref('')
 
 const range = computed(() => (preset.value === 'custom' ? custom : periodRange(preset.value)))
-const params = computed(() => {
-  const [kind, id] = region.value.split(':')
-  return {
-    from: range.value.from,
-    to: range.value.to,
-    rw_id: kind === 'rw' ? id : undefined,
-    rt_id: kind === 'rt' ? id : undefined,
-  }
-})
+const params = computed(() => ({
+  from: range.value.from,
+  to: range.value.to,
+  ...regionParams(region.value),
+}))
 
 const regionOptions = computed(() => {
   const source = regionSource.value
-  if (!source) return []
-  if (source.scope.level === 'village') {
-    return [
-      { value: 'all', label: `Seluruh ${source.scope.label}` },
-      ...source.rws.map((rw) => ({
-        label: rw.label,
-        options: [
-          { value: `rw:${rw.id}`, label: `${rw.label} — semua RT` },
-          ...source.rts
-            .filter((rt) => rt.rw.id === rw.id)
-            .map((rt) => ({ value: `rt:${rt.id}`, label: `${rt.label}/${rw.label}` })),
-        ],
-      })),
-    ]
-  }
-  if (source.scope.level === 'rw') {
-    return [
-      { value: 'all', label: `Seluruh ${source.scope.label}` },
-      ...source.rts.map((rt) => ({ value: `rt:${rt.id}`, label: `${rt.label}/${rt.rw.label}` })),
-    ]
-  }
-  return []
+  return source ? regionSelectOptions({ ...source.scope, rws: source.rws, rts: source.rts }) : []
 })
 
 const tiles = computed(() => (summary.value ? recapTiles(summary.value) : []))
