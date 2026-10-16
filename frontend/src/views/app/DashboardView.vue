@@ -110,8 +110,20 @@ const modules = {
       to: 'complaints',
       query: { tab: 'active' },
     },
-    { label: 'Peta sebaran laporan', icon: 'location' },
-    { label: 'Monthly Insight desa', icon: 'chart-square' },
+    {
+      label: 'Peta sebaran laporan',
+      icon: 'map',
+      to: 'complaint-map',
+      cta: 'Buka peta',
+      body: 'Titik laporan dan lokasi masalah yang berulang.',
+    },
+    {
+      label: 'Ringkasan bulanan desa',
+      icon: 'status-up',
+      to: 'insights',
+      cta: 'Buka ringkasan',
+      body: 'Narasi kondisi desa bulan ini, disusun AI.',
+    },
   ],
 }
 
@@ -283,6 +295,13 @@ onMounted(() =>
               <AppIcon name="arrow-square-right" class="size-[18px]!" />
             </p>
             <p v-else class="text-sm font-medium text-desa-secondary">{{ captions[item.key] }}</p>
+          </div>
+          <div v-else-if="item.cta" class="mt-auto flex flex-col gap-1.5">
+            <p class="leading-6 text-desa-black">{{ item.body }}</p>
+            <p class="flex items-center gap-1 text-sm font-medium text-desa-dark-green">
+              {{ item.cta }}
+              <AppIcon name="arrow-square-right" class="size-[18px]!" />
+            </p>
           </div>
           <div v-else class="mt-auto flex flex-col gap-1.5">
             <p class="text-[32px] leading-10 font-semibold text-desa-grey">—</p>
