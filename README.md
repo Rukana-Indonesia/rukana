@@ -56,6 +56,12 @@ Pola no. HP (RW 03/04, RT 01/02): ketua RW `08110000{RW}00`, ketua RT `08110000{
 
 Dasbor pengurus (RT, RW, operator, kepala desa) punya panel **Rekap layanan** per periode dan wilayah. RW dan operator bisa mengunduhnya sebagai Excel (`.xlsx`, lewat OpenSpout) atau PDF (dompdf). Surat dan laporan dihitung dari yang masuk dalam periode; rating dari yang diberikan dalam periode. Berkas ekspor tidak memuat NIK, nomor HP, maupun nama pelapor laporan, dan setiap unduhan tercatat di audit log (`export.downloaded`).
 
+## Peta sebaran laporan
+
+Menu **Peta Laporan** (RT, RW, operator, kepala desa) menampilkan titik laporan di peta OpenStreetMap + Leaflet, dengan filter periode, wilayah, kategori, dan status. Lokasi yang punya 2 laporan atau lebih dalam radius ±100 m ditandai sebagai **titik berulang**. Hanya laporan yang punya titik peta yang tampil; laporan yang hanya berisi patokan lokasi ikut dihitung tapi tidak digambar. Peta tidak memuat nama pelapor, nomor HP, maupun patokan lokasi.
+
+Bila belum ada titik laporan, peta dibuka di koordinat `MAP_CENTER_LAT` / `MAP_CENTER_LNG` (zoom `MAP_CENTER_ZOOM`) dari `backend/.env`. Isi dengan koordinat kantor atau balai desa.
+
 ## Fitur AI (Claude)
 
 Tiga fitur memakai Claude lewat SDK resmi `anthropic-ai/sdk`. Isi `ANTHROPIC_API_KEY` di `backend/.env`; model bawaan `claude-opus-5-5` (ganti lewat `ANTHROPIC_MODEL`). Tanpa kunci, aplikasi tetap jalan dan fitur AI menampilkan "belum dikonfigurasi".
