@@ -23,4 +23,13 @@ class TicketCodeTest extends TestCase
         Carbon::setTestNow('2026-12-01 00:00:00');
         $this->assertSame('SRT-2612-0001', TicketCode::next(TicketCode::LETTER));
     }
+
+    public function test_backdated_code_uses_the_given_month_in_jakarta_time(): void
+    {
+        Carbon::setTestNow('2026-12-01 00:00:00');
+
+        // 31 Agu 2026 20:00 UTC = 1 Sep 03:00 WIB.
+        $this->assertSame('LPR-2609-0001', TicketCode::next(TicketCode::COMPLAINT, Carbon::parse('2026-08-31 20:00:00', 'UTC')));
+        $this->assertSame('LPR-2612-0001', TicketCode::next(TicketCode::COMPLAINT));
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 class TicketCode
@@ -13,11 +14,12 @@ class TicketCode
     /**
      * Kode tiket berikutnya, mis. SRT-2610-0042. Nomor urut direset tiap bulan
      * (zona Asia/Jakarta). Panggil di dalam transaksi yang sama dengan insert
-     * tiketnya supaya kunci baris dipegang sampai commit.
+     * tiketnya supaya kunci baris dipegang sampai commit. $at hanya untuk data
+     * contoh bertanggal lampau; tiket asli selalu memakai waktu sekarang.
      */
-    public static function next(string $prefix): string
+    public static function next(string $prefix, ?CarbonInterface $at = null): string
     {
-        $period = now(config('app.display_timezone'))->format('ym');
+        $period = ($at ?? now())->copy()->setTimezone(config('app.display_timezone'))->format('ym');
 
         return DB::transaction(function () use ($prefix, $period) {
             DB::table('ticket_sequences')->insertOrIgnore(['prefix' => $prefix, 'period' => $period, 'last_number' => 0]);

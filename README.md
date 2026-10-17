@@ -25,6 +25,7 @@ cd backend
 composer install
 cp .env.example .env && php artisan key:generate   # sekali saja
 php artisan migrate --seed
+php artisan db:seed --class=ComplaintMapDemoSeeder   # opsional: 16 laporan contoh bertitik untuk peta
 php artisan serve
 php artisan schedule:work   # terminal terpisah: pengumuman terjadwal + Monthly Insight tiap tanggal 1
 php artisan queue:work --timeout=300   # terminal terpisah: Smart Complaint dan Monthly Insight
