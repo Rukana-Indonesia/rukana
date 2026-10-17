@@ -182,6 +182,21 @@ class SmartComplaintTest extends TestCase
         $this->assertEquals(100.0, $accuracy['level']);
     }
 
+    /** Daftar laporan (lebih dari satu) tidak memuat saran AI dan tidak boleh memicu lazy load. */
+    public function test_staff_list_with_several_complaints_does_not_lazy_load_ai_label(): void
+    {
+        $this->ai->json(['category_id' => $this->category('sampah-menumpuk'), 'urgency' => 'medium', 'level' => 'rt', 'summary' => 'Sampah menumpuk.']);
+        $this->ai->json(['category_id' => $this->category('sampah-menumpuk'), 'urgency' => 'low', 'level' => 'rt', 'summary' => 'Sampah lagi.']);
+        $this->report()->assertCreated();
+        $this->report(['title' => 'Sampah di depan masjid'])->assertCreated();
+
+        $this->actingAs($this->ketuaRt)->getJson('/api/complaints')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.can.retry_ai', false)
+            ->assertJsonMissingPath('data.0.ai_label');
+    }
+
     private function report(array $overrides = [])
     {
         return $this->actingAs($this->warga)->postJson('/api/complaints', array_merge([

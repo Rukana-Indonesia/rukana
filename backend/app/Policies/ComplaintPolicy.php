@@ -93,7 +93,7 @@ class ComplaintPolicy
     public function retryAi(User $user, Complaint $complaint): bool
     {
         return ! $complaint->status->isFinal()
-            && in_array($complaint->aiLabel?->status, [null, AiTaskStatus::Failed], true)
+            && in_array($complaint->loadMissing('aiLabel')->aiLabel?->status, [null, AiTaskStatus::Failed], true)
             && $this->handle($user, $complaint);
     }
 

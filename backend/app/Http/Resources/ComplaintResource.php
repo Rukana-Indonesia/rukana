@@ -115,7 +115,8 @@ class ComplaintResource extends JsonResource
                 'comment_internal' => $showInternal,
                 'view_reporter' => $showReporter,
                 'rate' => (bool) $user?->can('rate', $this->resource),
-                'retry_ai' => (bool) $user?->can('retryAi', $this->resource),
+                // Hanya di detail (aiLabel dimuat); daftar tidak menampilkan tombol ini.
+                'retry_ai' => $this->relationLoaded('aiLabel') && (bool) $user?->can('retryAi', $this->resource),
             ],
         ];
     }
