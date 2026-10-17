@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
 import AppAlert from '@/components/ui/AppAlert.vue'
@@ -11,6 +11,9 @@ import AppTextarea from '@/components/ui/AppTextarea.vue'
 import { api, errorMessage, fieldErrors } from '@/lib/api'
 import { formatCoords, mapLink } from '@/lib/complaints'
 import { compressImage } from '@/lib/image'
+
+// Leaflet baru dimuat setelah warga mengambil titik lokasi.
+const LocationMap = defineAsyncComponent(() => import('@/components/map/LocationMap.vue'))
 
 const MAX_PHOTOS = 3
 const MAX_BYTES = 5 * 1024 * 1024
@@ -281,30 +284,38 @@ async function submit() {
         <!-- Lokasi: titik dari GPS browser dan/atau patokan yang diketik. -->
         <fieldset class="flex flex-col gap-3">
           <legend class="mb-3 leading-5 font-medium text-desa-secondary">Lokasi</legend>
-          <div
-            v-if="form.point"
-            class="flex items-center gap-3 rounded-2xl bg-desa-foreshadow px-4 py-3"
-          >
-            <AppIcon name="location" class="text-desa-dark-green" />
-            <div class="flex min-w-0 flex-1 flex-col">
-              <span class="leading-5 font-semibold">Titik lokasi tersimpan</span>
-              <a
-                :href="mapLink(form.point)"
-                target="_blank"
-                rel="noopener"
-                class="truncate text-sm text-desa-dark-green underline-offset-4 hover:underline"
-                >{{ formatCoords(form.point) }} · akurasi ± {{ form.point.accuracy }} m</a
+          <template v-if="form.point">
+            <LocationMap v-model:point="form.point" editable />
+            <div class="flex items-center gap-3 rounded-2xl bg-desa-foreshadow px-4 py-3">
+              <AppIcon name="location" class="text-desa-dark-green" />
+              <div class="flex min-w-0 flex-1 flex-col">
+                <span class="leading-5 font-semibold">Titik lokasi tersimpan</span>
+                <a
+                  :href="mapLink(form.point)"
+                  target="_blank"
+                  rel="noopener"
+                  class="truncate text-sm text-desa-dark-green underline-offset-4 hover:underline"
+                  >{{ formatCoords(form.point) }} ·
+                  {{
+                    form.point.accuracy === null
+                      ? 'digeser manual'
+                      : `akurasi ± ${form.point.accuracy} m`
+                  }}</a
+                >
+                <span class="text-sm text-desa-secondary"
+                  >Geser titik atau ketuk peta kalau lokasinya kurang pas.</span
+                >
+              </div>
+              <button
+                type="button"
+                class="flex size-9 shrink-0 items-center justify-center rounded-lg text-desa-secondary hover:text-desa-red"
+                aria-label="Hapus titik lokasi"
+                @click="form.point = null"
               >
+                <AppIcon name="close-circle" class="size-5!" />
+              </button>
             </div>
-            <button
-              type="button"
-              class="flex size-9 shrink-0 items-center justify-center rounded-lg text-desa-secondary hover:text-desa-red"
-              aria-label="Hapus titik lokasi"
-              @click="form.point = null"
-            >
-              <AppIcon name="close-circle" class="size-5!" />
-            </button>
-          </div>
+          </template>
           <AppButton v-else-if="canLocate" variant="secondary" :loading="locating" @click="locate">
             <AppIcon name="location" />
             Gunakan lokasi saya

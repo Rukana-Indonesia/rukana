@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import SmartComplaintCard from '@/components/ai/SmartComplaintCard.vue'
@@ -23,8 +23,12 @@ import {
   urgencyBadge,
   urgencyOptions,
 } from '@/lib/complaints'
+import { statusColors } from '@/lib/complaintMap'
 import { formatDate, formatPhone, whatsappLink } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth'
+
+// Leaflet hanya dimuat kalau laporan punya titik lokasi.
+const LocationMap = defineAsyncComponent(() => import('@/components/map/LocationMap.vue'))
 
 // Tombol aksi hanya mengikuti `can` dari backend; backend tetap memeriksa ulang.
 const auth = useAuthStore()
@@ -407,7 +411,12 @@ async function sendReply() {
                 <dd v-if="complaint.location.text" class="leading-5 font-semibold">
                   {{ complaint.location.text }}
                 </dd>
-                <dd v-if="complaint.location.latitude !== null">
+                <dd v-if="complaint.location.latitude !== null" class="flex flex-col gap-2">
+                  <LocationMap
+                    :point="complaint.location"
+                    :color="statusColors[complaint.status]"
+                    class="mt-1"
+                  />
                   <a
                     :href="mapLink(complaint.location)"
                     target="_blank"
@@ -415,7 +424,7 @@ async function sendReply() {
                     class="inline-flex items-center gap-1.5 text-sm font-medium text-desa-dark-green underline-offset-4 hover:underline"
                   >
                     <AppIcon name="location" class="size-4!" />
-                    Buka di peta ({{ formatCoords(complaint.location) }})
+                    Buka di OpenStreetMap ({{ formatCoords(complaint.location) }})
                   </a>
                 </dd>
               </div>

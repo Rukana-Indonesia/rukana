@@ -1,6 +1,7 @@
 <script setup>
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import './map.css'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { statusColors } from '@/lib/complaintMap'
@@ -156,25 +157,3 @@ onBeforeUnmount(() => {
     aria-label="Peta sebaran laporan"
   />
 </template>
-
-<style>
-.rukana-map.leaflet-container {
-  font-family: inherit;
-}
-
-.rukana-map .leaflet-popup-content-wrapper {
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgb(0 27 26 / 0.12);
-}
-
-.rukana-map .leaflet-popup-content {
-  margin: 16px;
-}
-
-.rukana-map .leaflet-bar {
-  overflow: hidden;
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgb(0 27 26 / 0.12);
-}
-</style>
