@@ -32,7 +32,7 @@ return [
     // API, fitur AI menampilkan "belum dikonfigurasi" dan fitur lain tetap jalan.
     'anthropic' => [
         'key' => env('ANTHROPIC_API_KEY'),
-        'model' => env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-haiku-5-5'),
         'timeout' => (float) env('ANTHROPIC_TIMEOUT', 90),
     ],
 
