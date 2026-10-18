@@ -11,6 +11,7 @@ enum LetterAction: string
     case Ready = 'ready';
     case PickedUp = 'picked_up';
     case Rejected = 'rejected';
+    case Cancelled = 'cancelled';
 
     public function label(): string
     {
@@ -22,6 +23,7 @@ enum LetterAction: string
             self::Ready => 'Siap diambil',
             self::PickedUp => 'Diambil',
             self::Rejected => 'Ditolak',
+            self::Cancelled => 'Dibatalkan pemohon',
         };
     }
 }
