@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * AiGateway lewat SDK resmi Anthropic. Thinking memakai bawaan model (adaptive);
- * kedalamannya diatur lewat effort. Penolakan model dialihkan server ke model
- * pengganti (fallbacks "default"); bila tetap ditolak, dianggap gagal.
+ * kedalamannya diatur lewat effort. Pada model yang mendukungnya (Opus, Sonnet,
+ * Fable), penolakan model dialihkan server ke model pengganti (fallbacks
+ * "default"). Haiku tidak punya fallback; penolakan langsung dianggap gagal.
  */
 class AnthropicGateway implements AiGateway
 {
@@ -38,16 +39,18 @@ class AnthropicGateway implements AiGateway
             $outputConfig['format'] = ['type' => 'json_schema', 'schema' => $options['schema']];
         }
 
+        $fallback = $this->supportsFallback();
+
         try {
             $message = $this->client()->beta->messages->create(
                 maxTokens: $options['max_tokens'] ?? 16000,
                 messages: $messages,
                 model: $this->model,
-                fallbacks: 'default',
+                fallbacks: $fallback ? 'default' : null,
                 outputConfig: $outputConfig,
                 system: $system,
                 tools: $options['tools'] ?? null,
-                betas: ['server-side-fallback-2026-07-01'],
+                betas: $fallback ? ['server-side-fallback-2026-07-01'] : null,
                 requestOptions: ['timeout' => $this->timeout],
             );
         } catch (APIException $e) {
@@ -79,6 +82,12 @@ class AnthropicGateway implements AiGateway
             inputTokens: $message->usage->inputTokens,
             outputTokens: $message->usage->outputTokens,
         );
+    }
+
+    /** Fallback server-side hanya diterima model Opus, Sonnet, dan Fable; Haiku menolaknya (400). */
+    public function supportsFallback(): bool
+    {
+        return preg_match('/^claude-(opus|sonnet|fable)-/', $this->model) === 1;
     }
 
     private function client(): Client

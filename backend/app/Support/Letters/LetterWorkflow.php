@@ -102,6 +102,41 @@ class LetterWorkflow
         });
     }
 
+    /**
+     * Pemohon membatalkan pengajuannya. Otorisasi (pemilik surat) dicek Policy; status
+     * dicek ulang di dalam kunci baris supaya pembatalan tidak menimpa surat yang
+     * baru saja diselesaikan atau ditolak pengurus.
+     */
+    public function cancel(LetterRequest $letter, User $actor, ?string $reason = null): LetterRequest
+    {
+        return DB::transaction(function () use ($letter, $actor, $reason) {
+            $letter = LetterRequest::lockForUpdate()->findOrFail($letter->id);
+
+            if ($letter->status->isFinal()) {
+                throw new ConflictHttpException("Surat ini sudah berstatus {$letter->status->label()}.");
+            }
+
+            $from = $letter->status;
+            $level = $letter->current_level;
+
+            $letter->fill(['status' => LetterStatus::Cancelled, 'current_level' => null])->save();
+
+            $letter->steps()->create([
+                'level' => null,
+                'action' => LetterAction::Cancelled,
+                'from_status' => $from,
+                'to_status' => LetterStatus::Cancelled,
+                'actor_id' => $actor->id,
+                'note' => $reason,
+            ]);
+
+            Audit::log('letter.cancelled', $letter, ['from' => $from->value], $actor);
+            app(Notifier::class)->letterCancelled($letter, $level);
+
+            return $letter;
+        });
+    }
+
     /** Status berikutnya: tingkat terakhir alur langsung menyelesaikan surat. */
     private function next(LetterStatus $from, LetterFlow $flow): LetterStatus
     {

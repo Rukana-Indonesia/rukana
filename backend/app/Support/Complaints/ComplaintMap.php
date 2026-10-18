@@ -8,6 +8,7 @@ use App\Models\Complaint;
 use App\Models\ComplaintCategory;
 use App\Models\Rt;
 use App\Models\Rw;
+use App\Models\Village;
 use App\Support\Scope\RegionScope;
 use App\Support\Stats\Period;
 use App\Support\Stats\ServiceRecap;
@@ -86,7 +87,7 @@ class ComplaintMap
             'truncated' => $withLocation > self::MAX_POINTS,
             'points' => $points,
             'hotspots' => $this->hotspots($points),
-            'center' => config('app.map_center'),
+            'center' => Village::findOrFail($scope->villageId)->mapCenter(),
         ];
     }
 

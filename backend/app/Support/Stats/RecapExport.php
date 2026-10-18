@@ -81,6 +81,7 @@ class RecapExport
             $letter->status->label(),
             match (true) {
                 $letter->status === LetterStatus::Rejected => 'Ditolak di '.$letter->rejected_level?->label(),
+                $letter->status === LetterStatus::Cancelled => 'Dibatalkan pemohon',
                 $letter->current_level !== null => 'Di '.$letter->current_level->label(),
                 default => '—',
             },

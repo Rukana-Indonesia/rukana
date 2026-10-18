@@ -118,6 +118,7 @@ class ServiceRecap
             'total' => $letters->count(),
             'completed' => $letters->where('status', LetterStatus::Completed)->count(),
             'rejected' => $letters->where('status', LetterStatus::Rejected)->count(),
+            'cancelled' => $letters->where('status', LetterStatus::Cancelled)->count(),
             'active' => $letters->reject(fn (LetterRequest $l) => $l->status->isFinal())->count(),
         ];
     }
@@ -145,7 +146,7 @@ class ServiceRecap
     {
         $letters = LetterRequest::query()
             ->tap(fn (Builder $q) => $scope->apply($q))
-            ->whereNotIn('status', [LetterStatus::Completed, LetterStatus::Rejected])
+            ->whereNotIn('status', LetterStatus::finals())
             ->selectRaw('current_level, status, count(*) as total')
             ->groupBy('current_level', 'status')
             ->get();

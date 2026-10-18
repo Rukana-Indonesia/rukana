@@ -35,11 +35,17 @@ class LetterRequestPolicy
             && ($required === null || $required === $level);
     }
 
+    /** Pemohon boleh membatalkan pengajuannya sendiri selama surat belum berstatus akhir. */
+    public function cancel(User $user, LetterRequest $letter): bool
+    {
+        return $letter->user_id === $user->id && ! $letter->status->isFinal();
+    }
+
     /** Pengantar bisa dicetak setelah diverifikasi RT, selama tidak ditolak. */
     public function print(User $user, LetterRequest $letter): bool
     {
         return $this->view($user, $letter)
-            && ! in_array($letter->status, [LetterStatus::Submitted, LetterStatus::Rejected], true);
+            && ! in_array($letter->status, [LetterStatus::Submitted, LetterStatus::Rejected, LetterStatus::Cancelled], true);
     }
 
     /** Rating 1–5 oleh pemohon setelah surat selesai, sekali per surat (PRD 6.7). */

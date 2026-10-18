@@ -72,7 +72,7 @@ class Notifier
             LetterStatus::ReadyForPickup => ['Surat siap diambil', "{$name} siap diambil di kantor desa.".($letter->serviceType->notes ? " {$letter->serviceType->notes}" : '')],
             LetterStatus::Completed => ['Surat selesai', "{$name} selesai. Bagaimana pelayanannya? Beri rating 1–5."],
             LetterStatus::Rejected => ['Pengajuan ditolak', "{$name} ditolak {$letter->rejected_level?->label()}: {$letter->rejection_reason}"],
-            LetterStatus::Submitted => [null, null],
+            LetterStatus::Submitted, LetterStatus::Cancelled => [null, null],
         };
 
         if ($title !== null) {
@@ -190,6 +190,22 @@ class Notifier
                 'letter.queue',
                 $title,
                 "{$letter->serviceType->name} ({$letter->code}) dari warga {$letter->rt->label()}/{$letter->rw->label()}.",
+                "/app/surat/{$letter->id}",
+                'document-text',
+            )),
+        );
+    }
+
+    /** Pemohon membatalkan: pengurus tingkat yang sedang memegang surat tidak perlu memprosesnya lagi. */
+    public function letterCancelled(LetterRequest $letter, Level $level): void
+    {
+        $letter->loadMissing(['serviceType', 'rt', 'rw']);
+
+        $this->staff($level, $letter->village_id, $letter->rw_id, $letter->rt_id)->each(
+            fn (User $official) => $this->send($official, new RukanaNotice(
+                'letter.cancelled',
+                'Pengajuan dibatalkan warga',
+                "{$letter->serviceType->name} ({$letter->code}) dari warga {$letter->rt->label()}/{$letter->rw->label()} dibatalkan pemohon dan tidak perlu diproses lagi.",
                 "/app/surat/{$letter->id}",
                 'document-text',
             )),
