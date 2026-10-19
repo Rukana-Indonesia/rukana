@@ -59,7 +59,7 @@ class LetterController extends Controller
             ->with(['serviceType', 'user', 'rt', 'rw', 'rating'])
             ->when($inbox, fn (Builder $q) => $q->whereIn('status', $awaiting))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $status === 'active'
-                ? $q->whereNotIn('status', [LetterStatus::Completed, LetterStatus::Rejected])
+                ? $q->whereNotIn('status', LetterStatus::finals())
                 : $q->where('status', $status))
             ->when($filters['service_type_id'] ?? null, fn (Builder $q, int $id) => $q->where('service_type_id', $id))
             ->when($filters['rt_id'] ?? null, fn (Builder $q, int $id) => $q->where('rt_id', $id))
@@ -181,6 +181,18 @@ class LetterController extends Controller
             'pickup' => "Surat {$letter->code} selesai diambil.",
             default => "Surat {$letter->code} sekarang berstatus {$letter->status->label()}.",
         }]);
+    }
+
+    /** Pemohon membatalkan pengajuannya sendiri selama surat belum berstatus akhir. */
+    public function cancel(Request $request, #[CurrentUser] User $user, LetterRequest $letter): LetterResource
+    {
+        Gate::authorize('cancel', $letter);
+
+        $reason = $request->validate(['reason' => ['nullable', 'string', 'max:500']])['reason'] ?? null;
+
+        $letter = $this->workflow->cancel($letter, $user, $reason);
+
+        return $this->resource($letter)->additional(['message' => "Pengajuan {$letter->code} dibatalkan."]);
     }
 
     /** NIK utuh untuk operator yang memproses surat di sistem desa. Setiap pembukaan dicatat. */

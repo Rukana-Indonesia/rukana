@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\OfficialController;
 use App\Http\Controllers\Api\Admin\RegionController as AdminRegionController;
 use App\Http\Controllers\Api\Admin\ServiceTypeController;
+use App\Http\Controllers\Api\Admin\VillageSettingsController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AskController;
 use App\Http\Controllers\Api\AuthController;
@@ -58,6 +59,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('letters/{letter}/nik', [LetterController::class, 'nik']);
     Route::get('letters/{letter}/attachments/{attachment}', [LetterController::class, 'attachment'])->scopeBindings();
     Route::post('letters/{letter}/rating', [RatingController::class, 'storeForLetter'])->middleware('role:warga');
+    Route::post('letters/{letter}/cancel', [LetterController::class, 'cancel'])->middleware('role:warga');
     Route::post('letters/{letter}/{action}', [LetterController::class, 'act'])
         ->whereIn('action', LetterWorkflow::ACTIONS)
         ->middleware('role:rt,rw,operator');
@@ -123,12 +125,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::prefix('admin')->group(function () {
         Route::middleware('role:operator,kepala_desa')->group(function () {
+            Route::get('village', [VillageSettingsController::class, 'show']);
             Route::get('regions', [AdminRegionController::class, 'index']);
             Route::get('officials', [OfficialController::class, 'index']);
             Route::get('services', [ServiceTypeController::class, 'index']);
         });
 
         Route::middleware('role:operator')->group(function () {
+            Route::put('village', [VillageSettingsController::class, 'update']);
+
             Route::post('rws', [AdminRegionController::class, 'storeRw']);
             Route::put('rws/{rw}', [AdminRegionController::class, 'updateRw']);
             Route::delete('rws/{rw}', [AdminRegionController::class, 'destroyRw']);

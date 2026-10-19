@@ -81,6 +81,7 @@ class LetterResource extends JsonResource
                 'print' => (bool) $user?->can('print', $this->resource),
                 'view_nik' => (bool) $user?->can('viewNik', $this->resource),
                 'rate' => (bool) $user?->can('rate', $this->resource),
+                'cancel' => (bool) $user?->can('cancel', $this->resource),
             ],
         ];
     }

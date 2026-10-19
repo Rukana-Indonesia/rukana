@@ -22,7 +22,11 @@ class UserResource extends JsonResource
             'residency_status' => $this->residency_status?->value,
             'rejection_reason' => $this->rejection_reason,
             'must_change_password' => $this->must_change_password,
-            'village' => $this->whenLoaded('village', fn () => ['id' => $this->village->id, 'name' => $this->village->name]),
+            'village' => $this->whenLoaded('village', fn () => [
+                'id' => $this->village->id,
+                'name' => $this->village->name,
+                'map_center' => $this->village->mapCenter(),
+            ]),
             'rw' => $this->whenLoaded('rw', fn () => $this->rw ? ['id' => $this->rw->id, 'number' => $this->rw->number, 'label' => $this->rw->label()] : null),
             'rt' => $this->whenLoaded('rt', fn () => $this->rt ? ['id' => $this->rt->id, 'number' => $this->rt->number, 'label' => $this->rt->label()] : null),
             'verified_at' => $this->verified_at?->toIso8601String(),
