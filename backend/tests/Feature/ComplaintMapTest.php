@@ -88,7 +88,8 @@ class ComplaintMapTest extends TestCase
 
         $this->assertSame(['RW 03', 'RW 04'], array_column($data['regions']['rws'], 'label'));
         $this->assertCount(4, $data['regions']['rts']);
-        $this->assertSame(config('app.map_center'), $data['center']);
+        // Desa belum mengatur titik tengah: titik cadangan dari config.
+        $this->assertSame([...config('app.map_center'), 'configured' => false], $data['center']);
 
         // Tanpa identitas pelapor dan patokan lokasi.
         $json = (string) json_encode($data);

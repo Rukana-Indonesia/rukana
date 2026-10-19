@@ -275,6 +275,49 @@ class LetterTest extends TestCase
         $this->get("/api/letters/{$id}/pdf")->assertUnauthorized();
     }
 
+    public function test_resident_cancels_own_letter_and_current_level_is_notified(): void
+    {
+        $id = $this->submit('pengantar-domisili', ['nik' => '3204123456780001', 'form_data' => ['lama_tinggal' => '5 tahun']])
+            ->assertCreated()
+            ->json('data.id');
+        $this->actingAs($this->ketuaRt1)->postJson("/api/letters/{$id}/verify")->assertOk();
+
+        $this->actingAs($this->warga)->getJson("/api/letters/{$id}")->assertJsonPath('data.can.cancel', true);
+        $this->actingAs($this->warga)->postJson("/api/letters/{$id}/cancel", ['reason' => 'Sudah tidak diperlukan'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled')
+            ->assertJsonPath('data.status_label', 'Dibatalkan')
+            ->assertJsonPath('data.current_level', null)
+            ->assertJsonPath('data.can.cancel', false)
+            ->assertJsonPath('data.can.print', false)
+            ->assertJsonPath('data.steps.2.action', 'cancelled')
+            ->assertJsonPath('data.steps.2.note', 'Sudah tidak diperlukan');
+
+        // RW yang sedang memegang surat diberi tahu; RT yang sudah selesai tidak.
+        $this->assertSame(1, $this->ketuaRw->notifications()->where('type', 'letter.cancelled')->count());
+        $this->assertSame(0, $this->ketuaRt1->notifications()->where('type', 'letter.cancelled')->count());
+        $this->assertSame(1, AuditLog::where('action', 'letter.cancelled')->where('subject_id', $id)->count());
+
+        // Surat batal keluar dari antrean RW dan tidak bisa diproses lagi.
+        $this->actingAs($this->ketuaRw)->getJson('/api/letters?inbox=1')->assertJsonPath('meta.inbox', 0);
+        $this->actingAs($this->ketuaRw)->postJson("/api/letters/{$id}/approve")
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Surat ini sudah berstatus Dibatalkan.');
+    }
+
+    public function test_only_the_applicant_can_cancel_and_only_before_it_is_final(): void
+    {
+        $id = $this->submit('pengantar-rt')->json('data.id');
+        $neighbour = User::factory()->forRt($this->rt1)->create();
+
+        $this->actingAs($neighbour)->postJson("/api/letters/{$id}/cancel")->assertForbidden();
+        $this->actingAs($this->ketuaRt1)->postJson("/api/letters/{$id}/cancel")->assertForbidden();
+
+        $this->actingAs($this->ketuaRt1)->postJson("/api/letters/{$id}/verify")->assertJsonPath('data.status', 'completed');
+        $this->actingAs($this->warga)->postJson("/api/letters/{$id}/cancel")->assertForbidden();
+        $this->assertSame(LetterStatus::Completed, LetterRequest::findOrFail($id)->status);
+    }
+
     private function submit(string $slug, array $data = [], ?User $as = null): TestResponse
     {
         return $this->actingAs($as ?? $this->warga)->post('/api/letters', [

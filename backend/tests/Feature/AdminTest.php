@@ -191,4 +191,30 @@ class AdminTest extends TestCase
         $this->actingAs($ketuaRt)->getJson('/api/admin/officials')->assertForbidden();
         $this->actingAs($ketuaRw)->getJson('/api/admin/regions')->assertForbidden();
     }
+
+    public function test_operator_sets_village_map_center_used_by_maps(): void
+    {
+        $kades = User::factory()->forVillage($this->village)->role(Role::KepalaDesa)->create();
+        $rw = User::factory()->forRw(Rw::firstOrFail())->role(Role::Rw)->create();
+
+        $this->actingAs($kades)->getJson('/api/admin/village')
+            ->assertOk()
+            ->assertJsonPath('data.map_center.configured', false)
+            ->assertJsonPath('data.can_update', false);
+        $this->actingAs($kades)->putJson('/api/admin/village', ['map_latitude' => -7, 'map_longitude' => 107, 'map_zoom' => 16])->assertForbidden();
+        $this->actingAs($rw)->getJson('/api/admin/village')->assertForbidden();
+
+        $this->actingAs($this->operator)->putJson('/api/admin/village', ['map_latitude' => 91, 'map_longitude' => 107.5, 'map_zoom' => 25])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['map_latitude', 'map_zoom']);
+
+        $this->actingAs($this->operator)->putJson('/api/admin/village', ['map_latitude' => -7.0123456, 'map_longitude' => 107.6543210, 'map_zoom' => 16])
+            ->assertOk()
+            ->assertJsonPath('data.map_center', ['latitude' => -7.0123456, 'longitude' => 107.654321, 'zoom' => 16, 'configured' => true]);
+        $this->assertSame(1, AuditLog::where('action', 'village.settings_updated')->count());
+
+        // Dipakai peta sebaran (pengurus) dan form laporan (lewat profil akun).
+        $this->actingAs($rw)->getJson('/api/complaint-map')->assertJsonPath('data.center.latitude', -7.0123456);
+        $this->actingAs($rw->fresh())->getJson('/api/auth/me')->assertJsonPath('data.village.map_center.zoom', 16);
+    }
 }

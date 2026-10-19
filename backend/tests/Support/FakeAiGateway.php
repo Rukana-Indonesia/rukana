@@ -31,12 +31,12 @@ class FakeAiGateway implements AiGateway
     /** Balasan JSON (structured output). */
     public function json(array $data): self
     {
-        return $this->reply(new AiReply('end_turn', json_encode($data), [], [['type' => 'text', 'text' => json_encode($data)]], 'claude-opus-5-5', 100, 50));
+        return $this->reply(new AiReply('end_turn', json_encode($data), [], [['type' => 'text', 'text' => json_encode($data)]], 'claude-haiku-5-5', 100, 50));
     }
 
     public function text(string $text): self
     {
-        return $this->reply(new AiReply('end_turn', $text, [], [['type' => 'text', 'text' => $text]], 'claude-opus-5-5', 100, 50));
+        return $this->reply(new AiReply('end_turn', $text, [], [['type' => 'text', 'text' => $text]], 'claude-haiku-5-5', 100, 50));
     }
 
     /** Satu atau beberapa panggilan tool sekaligus: [[name, input], ...]. */
@@ -44,7 +44,7 @@ class FakeAiGateway implements AiGateway
     {
         $uses = array_map(fn (array $c, int $i) => ['id' => 'toolu_'.count($this->queue).'_'.$i, 'name' => $c[0], 'input' => $c[1]], $calls, array_keys($calls));
 
-        return $this->reply(new AiReply('tool_use', '', $uses, array_map(fn ($u) => ['type' => 'tool_use', ...$u], $uses), 'claude-opus-5-5', 100, 20));
+        return $this->reply(new AiReply('tool_use', '', $uses, array_map(fn ($u) => ['type' => 'tool_use', ...$u], $uses), 'claude-haiku-5-5', 100, 20));
     }
 
     public function fail(string $message = 'Layanan AI sedang tidak bisa dihubungi.'): self
