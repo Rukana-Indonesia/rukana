@@ -10,6 +10,7 @@ const props = defineProps({
   point: { type: Object, required: true }, // { latitude, longitude, accuracy? }
   color: { type: String, default: '#34613a' },
   editable: { type: Boolean, default: false },
+  zoom: { type: Number, default: 17 },
 })
 
 const emit = defineEmits(['update:point'])
@@ -36,7 +37,10 @@ function draw() {
 }
 
 onMounted(() => {
-  map = L.map(el.value, { scrollWheelZoom: false, attributionControl: true }).setView(latLng(), 17)
+  map = L.map(el.value, { scrollWheelZoom: false, attributionControl: true }).setView(
+    latLng(),
+    props.zoom,
+  )
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',

@@ -20,8 +20,18 @@ const reachedAt = computed(() =>
   Object.fromEntries(props.steps.map((step) => [step.to_status, step.created_at])),
 )
 
+// Status akhir yang memutus alur: ditolak pengurus atau dibatalkan pemohon (surat).
+const stopped = {
+  rejected: {
+    icon: 'close-circle',
+    label: () => (props.rejectedLevelLabel ? `Ditolak ${props.rejectedLevelLabel}` : 'Ditolak'),
+  },
+  cancelled: { icon: 'close-circle', label: () => 'Dibatalkan pemohon' },
+}
+
 const items = computed(() => {
-  const rejected = props.status === 'rejected'
+  const end = stopped[props.status]
+  const rejected = end !== undefined
   // Jumlah tahap yang sudah dilewati: sampai status sekarang (laporan bisa diteruskan
   // lagi setelah diproses), atau sampai tahap terakhir sebelum ditolak.
   const current = props.stages.findIndex((s) => s.status === props.status)
@@ -37,10 +47,10 @@ const items = computed(() => {
   return [
     ...list.slice(0, reached),
     {
-      status: 'rejected',
-      label: props.rejectedLevelLabel ? `Ditolak ${props.rejectedLevelLabel}` : 'Ditolak',
-      at: reachedAt.value.rejected,
-      state: 'rejected',
+      status: props.status,
+      label: end.label(),
+      at: reachedAt.value[props.status],
+      state: props.status,
     },
   ]
 })
@@ -65,13 +75,14 @@ const items = computed(() => {
             current: 'bg-desa-yellow/20 text-[#8a5300] ring-2 ring-desa-yellow',
             upcoming: 'bg-desa-background text-desa-secondary',
             rejected: 'bg-desa-red text-white',
+            cancelled: 'bg-desa-secondary text-white',
           }[item.state],
         ]"
       >
         <AppIcon
           :name="
-            item.state === 'rejected'
-              ? 'close-circle'
+            stopped[item.state]
+              ? stopped[item.state].icon
               : item.state === 'current'
                 ? 'timer'
                 : 'tick-circle'
