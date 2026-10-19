@@ -8,9 +8,17 @@ export const statusBadge = {
   ready_for_pickup: 'success',
   completed: 'success',
   rejected: 'danger',
+  cancelled: 'neutral',
 }
 
-export const isFinal = (status) => status === 'completed' || status === 'rejected'
+export const isFinal = (status) => ['completed', 'rejected', 'cancelled'].includes(status)
+
+/** Alasan cepat saat warga membatalkan pengajuannya. */
+export const cancelReasons = [
+  'Sudah tidak diperlukan',
+  'Salah memilih jenis surat',
+  'Isian atau lampiran salah',
+]
 
 /** Teks tombol dan konfirmasi untuk tiap aksi pengurus (nama aksi sama dengan URL API). */
 export const actionText = {

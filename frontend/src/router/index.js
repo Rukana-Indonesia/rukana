@@ -195,6 +195,12 @@ const router = createRouter({
           meta: { active: true, roles: ['operator', 'kepala_desa'], title: 'Wilayah' },
         },
         {
+          path: 'pengaturan-desa',
+          name: 'village-settings',
+          component: () => import('@/views/app/admin/VillageSettingsView.vue'),
+          meta: { active: true, roles: ['operator', 'kepala_desa'], title: 'Pengaturan Desa' },
+        },
+        {
           path: 'menunggu-verifikasi',
           name: 'pending',
           component: () => import('@/views/app/PendingView.vue'),

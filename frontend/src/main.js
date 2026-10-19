@@ -6,6 +6,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { onUnauthorized } from './lib/api'
+import { listenForInstallPrompt, registerServiceWorker } from './lib/pwa'
 import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
@@ -20,5 +21,8 @@ onUnauthorized(() => {
   auth.clear()
   router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
 })
+
+listenForInstallPrompt()
+registerServiceWorker()
 
 app.mount('#app')

@@ -75,6 +75,7 @@ export const letterStatusLabels = {
   ready_for_pickup: 'Siap Diambil',
   completed: 'Selesai',
   rejected: 'Ditolak',
+  cancelled: 'Dibatalkan',
 }
 
 export const complaintStatusLabels = {
@@ -102,7 +103,9 @@ export function recapTiles(s) {
       label: 'Surat masuk',
       icon: 'document-text',
       value: l.total,
-      caption: `${l.completed} selesai · ${l.active} berjalan · ${l.rejected} ditolak`,
+      caption:
+        `${l.completed} selesai · ${l.active} berjalan · ${l.rejected} ditolak` +
+        (l.cancelled ? ` · ${l.cancelled} batal` : ''),
     },
     {
       label: 'Rata-rata proses surat',
