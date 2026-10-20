@@ -98,6 +98,9 @@ onMounted(() => {
       <AppAlert v-if="ticket.status === 'ready_for_pickup'" variant="success">
         Surat sudah bisa diambil di kantor desa. Bawa KTP asli saat mengambil.
       </AppAlert>
+      <AppAlert v-else-if="ticket.status === 'cancelled'" variant="info">
+        Pengajuan ini sudah dibatalkan oleh pemohon dan tidak diproses lagi.
+      </AppAlert>
       <AppAlert v-else-if="ticket.status === 'rejected'" variant="warning">
         {{ ticket.type === 'complaint' ? 'Laporan' : 'Pengajuan' }} ditolak di tingkat
         {{ ticket.rejected_level_label }}.

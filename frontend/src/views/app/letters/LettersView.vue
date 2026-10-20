@@ -29,6 +29,7 @@ const tabs = computed(() => [
   { key: 'active', label: 'Berjalan' },
   { key: 'completed', label: 'Selesai' },
   { key: 'rejected', label: 'Ditolak' },
+  { key: 'cancelled', label: 'Dibatalkan' },
   { key: 'all', label: 'Semua' },
 ])
 
@@ -53,9 +54,10 @@ const tabCount = computed(() => {
   const all = Object.values(c).reduce((sum, n) => sum + n, 0)
   return {
     inbox: inbox.value,
-    active: all - (c.completed ?? 0) - (c.rejected ?? 0),
+    active: all - (c.completed ?? 0) - (c.rejected ?? 0) - (c.cancelled ?? 0),
     completed: c.completed ?? 0,
     rejected: c.rejected ?? 0,
+    cancelled: c.cancelled ?? 0,
     all,
   }
 })
@@ -84,7 +86,7 @@ async function load(more = false) {
     const { data } = await api.get('/letters', {
       params: {
         inbox: tab === 'inbox' ? 1 : undefined,
-        status: ['active', 'completed', 'rejected'].includes(tab) ? tab : undefined,
+        status: ['active', 'completed', 'rejected', 'cancelled'].includes(tab) ? tab : undefined,
         search: filters.search || undefined,
         rt_id: filters.rt_id || undefined,
         from: filters.from || undefined,

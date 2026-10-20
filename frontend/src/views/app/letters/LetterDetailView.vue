@@ -12,7 +12,7 @@ import AppModal from '@/components/ui/AppModal.vue'
 import AppTextarea from '@/components/ui/AppTextarea.vue'
 import { api, errorMessage, fieldErrors, openFile } from '@/lib/api'
 import { formatDate, formatPhone } from '@/lib/format'
-import { actionText, formatSize, rejectReasons, statusBadge } from '@/lib/letters'
+import { actionText, cancelReasons, formatSize, rejectReasons, statusBadge } from '@/lib/letters'
 import { useAuthStore } from '@/stores/auth'
 
 // Tombol aksi hanya mengikuti `can.actions` dari backend; backend tetap memeriksa ulang.
@@ -129,13 +129,39 @@ async function submitAction() {
     dialog.submitting = false
   }
 }
+
+// Pembatalan oleh pemohon: dialog sendiri karena alasannya opsional dan nadanya berbeda.
+const cancelDialog = reactive({ open: false, reason: '', error: '', submitting: false })
+
+function openCancel() {
+  Object.assign(cancelDialog, { open: true, reason: '', error: '' })
+}
+
+async function submitCancel() {
+  cancelDialog.submitting = true
+  cancelDialog.error = ''
+  try {
+    const { data } = await api.post(`/letters/${letter.value.id}/cancel`, {
+      reason: cancelDialog.reason || undefined,
+    })
+    letter.value = data.data
+    notice.value = data.message
+    cancelDialog.open = false
+  } catch (err) {
+    cancelDialog.error = errorMessage(err)
+    // Surat baru saja diselesaikan/ditolak pengurus: muat ulang supaya tombolnya hilang.
+    if (err.response?.status === 403 || err.response?.status === 409) load()
+  } finally {
+    cancelDialog.submitting = false
+  }
+}
 </script>
 
 <template>
   <div class="flex flex-col gap-[14px]">
     <RouterLink
       :to="{ name: 'letters' }"
-      class="flex w-fit items-center gap-2 font-medium text-desa-secondary transition-all duration-300 hover:text-desa-dark-green"
+      class="hidden w-fit items-center gap-2 font-medium text-desa-secondary transition-all duration-300 hover:text-desa-dark-green lg:flex"
     >
       <AppIcon name="arrow-left" />
       {{ auth.hasRole('warga') ? 'Surat Saya' : 'Surat Pengantar' }}
@@ -181,6 +207,11 @@ async function submitAction() {
             <br />Perbaiki sesuai alasan di atas, lalu ajukan ulang.
           </template>
         </AppAlert>
+        <AppAlert v-else-if="letter.status === 'cancelled'" variant="info">
+          Pengajuan ini dibatalkan {{ isOwner ? 'oleh Anda' : 'oleh pemohon' }} dan tidak diproses
+          lagi.
+          <template v-if="isOwner"> Anda bisa mengajukan surat baru kapan saja.</template>
+        </AppAlert>
         <AppAlert v-else-if="letter.status === 'ready_for_pickup' && isOwner" variant="success">
           Surat sudah bisa diambil di kantor desa. {{ letter.service?.notes }}
         </AppAlert>
@@ -211,7 +242,7 @@ async function submitAction() {
             Cetak Pengantar (PDF)
           </AppButton>
           <RouterLink
-            v-if="isOwner && letter.status === 'rejected'"
+            v-if="isOwner && ['rejected', 'cancelled'].includes(letter.status)"
             :to="{ name: 'letter-create', params: { slug: letter.service?.slug } }"
             class="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-desa-dark-green px-5 font-medium text-white transition-all duration-300 hover:bg-[#2a5030]"
           >
@@ -228,6 +259,15 @@ async function submitAction() {
             <AppIcon name="call" />
             Bagikan kode lewat WhatsApp
           </a>
+          <AppButton
+            v-if="letter.can.cancel"
+            variant="ghost"
+            class="text-desa-red! hover:bg-desa-red/10!"
+            @click="openCancel"
+          >
+            <AppIcon name="close-circle" />
+            Batalkan Pengajuan
+          </AppButton>
         </div>
       </section>
 
@@ -397,6 +437,49 @@ async function submitAction() {
           :loading="dialog.submitting"
         >
           {{ actionText[dialog.action].button }}
+        </AppButton>
+      </template>
+    </AppModal>
+
+    <AppModal
+      v-model:open="cancelDialog.open"
+      title="Batalkan Pengajuan?"
+      description="Pengurus tidak akan memproses surat ini lagi. Pembatalan tidak bisa diurungkan, tetapi Anda bisa mengajukan surat baru kapan saja."
+    >
+      <form
+        id="letter-cancel"
+        class="flex flex-col gap-4"
+        novalidate
+        @submit.prevent="submitCancel"
+      >
+        <AppAlert v-if="cancelDialog.error">{{ cancelDialog.error }}</AppAlert>
+        <AppTextarea
+          v-model="cancelDialog.reason"
+          label="Alasan (opsional)"
+          maxlength="500"
+          placeholder="Mis. sudah tidak diperlukan"
+        />
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="reason in cancelReasons"
+            :key="reason"
+            type="button"
+            class="rounded-full border border-desa-background px-3 py-1.5 text-sm font-medium text-desa-secondary transition-all duration-300 hover:border-desa-dark-green hover:text-desa-dark-green"
+            @click="cancelDialog.reason = reason"
+          >
+            {{ reason }}
+          </button>
+        </div>
+      </form>
+      <template #footer>
+        <AppButton variant="secondary" @click="cancelDialog.open = false">Tidak jadi</AppButton>
+        <AppButton
+          type="submit"
+          form="letter-cancel"
+          variant="danger"
+          :loading="cancelDialog.submitting"
+        >
+          Ya, Batalkan
         </AppButton>
       </template>
     </AppModal>

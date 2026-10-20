@@ -135,7 +135,10 @@ async function submit() {
   <div class="flex flex-col gap-[14px]">
     <RouterLink
       :to="service ? { name: 'letter-create' } : { name: 'letters' }"
-      class="flex w-fit items-center gap-2 font-medium text-desa-secondary transition-all duration-300 hover:text-desa-dark-green"
+      :class="[
+        'w-fit items-center gap-2 font-medium text-desa-secondary transition-all duration-300 hover:text-desa-dark-green',
+        service ? 'flex' : 'hidden lg:flex',
+      ]"
     >
       <AppIcon name="arrow-left" />
       {{ service ? 'Pilih layanan lain' : 'Kembali ke Surat Saya' }}

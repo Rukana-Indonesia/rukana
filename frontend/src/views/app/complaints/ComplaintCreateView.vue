@@ -11,6 +11,7 @@ import AppTextarea from '@/components/ui/AppTextarea.vue'
 import { api, errorMessage, fieldErrors } from '@/lib/api'
 import { formatCoords, mapLink } from '@/lib/complaints'
 import { compressImage } from '@/lib/image'
+import { useAuthStore } from '@/stores/auth'
 
 // Leaflet baru dimuat setelah warga mengambil titik lokasi.
 const LocationMap = defineAsyncComponent(() => import('@/components/map/LocationMap.vue'))
@@ -127,6 +128,18 @@ function locate() {
   )
 }
 
+// Tanpa GPS (izin ditolak, HP lama, atau situs belum HTTPS) warga tetap bisa
+// menandai lokasi: peta dibuka di titik tengah desa dan titiknya baru dipakai
+// setelah warga mengetuk peta atau menggeser penandanya (`pending` hilang).
+const auth = useAuthStore()
+const villageCenter = computed(() => auth.user?.village?.map_center)
+
+function pickOnMap() {
+  const { latitude, longitude } = villageCenter.value
+  locationError.value = ''
+  form.point = { latitude, longitude, accuracy: null, pending: true }
+}
+
 // Waktu kejadian: input datetime-local (waktu HP), dikirim sebagai ISO dengan zona waktu.
 const nowLocal = computed(() => {
   const d = new Date()
@@ -147,7 +160,7 @@ async function submit() {
   body.append('description', form.description)
   body.append('idempotency_key', idempotencyKey)
   if (form.location_text) body.append('location_text', form.location_text)
-  if (form.point) {
+  if (form.point && !form.point.pending) {
     body.append('latitude', form.point.latitude)
     body.append('longitude', form.point.longitude)
   }
@@ -172,7 +185,7 @@ async function submit() {
   <div class="flex flex-col gap-[14px]">
     <RouterLink
       :to="{ name: 'complaints' }"
-      class="flex w-fit items-center gap-2 font-medium text-desa-secondary transition-all duration-300 hover:text-desa-dark-green"
+      class="hidden w-fit items-center gap-2 font-medium text-desa-secondary transition-all duration-300 hover:text-desa-dark-green lg:flex"
     >
       <AppIcon name="arrow-left" />
       Kembali ke Laporan Saya
@@ -285,8 +298,29 @@ async function submit() {
         <fieldset class="flex flex-col gap-3">
           <legend class="mb-3 leading-5 font-medium text-desa-secondary">Lokasi</legend>
           <template v-if="form.point">
-            <LocationMap v-model:point="form.point" editable />
-            <div class="flex items-center gap-3 rounded-2xl bg-desa-foreshadow px-4 py-3">
+            <LocationMap
+              v-model:point="form.point"
+              editable
+              :zoom="form.point.pending ? (villageCenter?.zoom ?? 16) : 17"
+            />
+            <div
+              v-if="form.point.pending"
+              class="flex items-center gap-3 rounded-2xl bg-desa-yellow/15 px-4 py-3 text-[#8a5300]"
+            >
+              <AppIcon name="location" />
+              <span class="flex-1 text-sm leading-5 font-medium"
+                >Ketuk peta di lokasi kejadian, atau geser titiknya ke sana.</span
+              >
+              <button
+                type="button"
+                class="flex size-9 shrink-0 items-center justify-center rounded-lg hover:text-desa-red"
+                aria-label="Batal memilih di peta"
+                @click="form.point = null"
+              >
+                <AppIcon name="close-circle" class="size-5!" />
+              </button>
+            </div>
+            <div v-else class="flex items-center gap-3 rounded-2xl bg-desa-foreshadow px-4 py-3">
               <AppIcon name="location" class="text-desa-dark-green" />
               <div class="flex min-w-0 flex-1 flex-col">
                 <span class="leading-5 font-semibold">Titik lokasi tersimpan</span>
@@ -316,14 +350,22 @@ async function submit() {
               </button>
             </div>
           </template>
-          <AppButton v-else-if="canLocate" variant="secondary" :loading="locating" @click="locate">
-            <AppIcon name="location" />
-            Gunakan lokasi saya
-          </AppButton>
+          <div v-else class="flex flex-col gap-3 sm:flex-row">
+            <AppButton v-if="canLocate" variant="secondary" :loading="locating" @click="locate">
+              <AppIcon name="location" />
+              Gunakan lokasi saya
+            </AppButton>
+            <AppButton v-if="villageCenter" variant="ghost" @click="pickOnMap">
+              <AppIcon name="map" />
+              Pilih di peta
+            </AppButton>
+          </div>
           <AppAlert v-if="locationError" variant="warning">{{ locationError }}</AppAlert>
           <AppInput
             v-model="form.location_text"
-            :label="form.point ? 'Patokan lokasi (opsional)' : 'Patokan lokasi'"
+            :label="
+              form.point && !form.point.pending ? 'Patokan lokasi (opsional)' : 'Patokan lokasi'
+            "
             icon="building-4"
             maxlength="255"
             placeholder="Mis. Gang Melati, dekat pos ronda"

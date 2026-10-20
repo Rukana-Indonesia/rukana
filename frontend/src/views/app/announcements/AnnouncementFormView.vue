@@ -181,7 +181,7 @@ async function submit() {
           ? { name: 'announcement-detail', params: { id: editId } }
           : { name: 'announcements', query: { tab: 'kelola' } }
       "
-      class="flex w-fit items-center gap-2 font-medium text-desa-secondary transition-all duration-300 hover:text-desa-dark-green"
+      class="hidden w-fit items-center gap-2 font-medium text-desa-secondary transition-all duration-300 hover:text-desa-dark-green lg:flex"
     >
       <AppIcon name="arrow-left" />
       {{ editId ? 'Kembali ke pengumuman' : 'Pengumuman' }}

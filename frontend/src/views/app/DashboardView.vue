@@ -176,7 +176,7 @@ async function loadLetters() {
   const all = Object.values(c).reduce((sum, n) => sum + n, 0)
   counts.value = {
     ...counts.value,
-    lettersActive: all - c.completed - c.rejected,
+    lettersActive: all - c.completed - c.rejected - (c.cancelled ?? 0),
     lettersInbox: data.meta.inbox,
     lettersVillage: c.rw_approved + c.village_received,
     lettersReady: c.ready_for_pickup,
