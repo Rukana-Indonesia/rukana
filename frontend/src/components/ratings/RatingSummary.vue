@@ -40,7 +40,7 @@ onMounted(async () => {
 
 <template>
   <section
-    class="flex flex-col gap-6 rounded-2xl bg-white p-6 sm:p-8"
+    class="flex flex-col gap-5 rounded-2xl bg-white p-5 sm:gap-6 sm:p-8"
     aria-labelledby="rating-summary"
   >
     <div class="flex flex-col gap-1">

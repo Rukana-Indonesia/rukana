@@ -138,7 +138,7 @@ onMounted(load)
 
 <template>
   <section
-    class="flex flex-col gap-6 rounded-2xl bg-white p-6 sm:p-8"
+    class="flex flex-col gap-5 rounded-2xl bg-white p-5 sm:gap-6 sm:p-8"
     aria-labelledby="recap-title"
   >
     <div class="flex flex-col justify-between gap-4 md:flex-row md:items-start">
@@ -149,7 +149,7 @@ onMounted(load)
           <template v-else>Surat, laporan, dan rating per periode.</template>
         </p>
       </div>
-      <div v-if="canExport" class="flex flex-wrap gap-3">
+      <div v-if="canExport" class="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
         <AppButton
           variant="secondary"
           :loading="exporting === 'xlsx'"
@@ -157,7 +157,7 @@ onMounted(load)
           @click="exportAs('xlsx')"
         >
           <AppIcon v-if="exporting !== 'xlsx'" name="document-download" />
-          Unduh Excel
+          <span class="sm:hidden">Excel</span><span class="hidden sm:inline">Unduh Excel</span>
         </AppButton>
         <AppButton
           variant="secondary"
@@ -166,7 +166,7 @@ onMounted(load)
           @click="exportAs('pdf')"
         >
           <AppIcon v-if="exporting !== 'pdf'" name="document-download" />
-          Unduh PDF
+          <span class="sm:hidden">PDF</span><span class="hidden sm:inline">Unduh PDF</span>
         </AppButton>
       </div>
     </div>
@@ -195,23 +195,27 @@ onMounted(load)
       :class="['flex flex-col gap-6 transition-opacity', loading && 'opacity-60']"
       :aria-busy="loading"
     >
-      <ul class="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
+      <ul class="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <li
           v-for="tile in tiles"
           :key="tile.label"
-          class="flex flex-col gap-2 rounded-2xl bg-desa-background/50 p-5"
+          class="flex flex-col gap-1.5 rounded-2xl bg-desa-background/50 p-4 sm:gap-2 sm:p-5"
         >
-          <div class="flex items-start justify-between gap-3">
-            <p class="text-sm font-medium text-desa-secondary">{{ tile.label }}</p>
-            <AppIcon :name="tile.icon" class="size-5! text-desa-dark-green" />
+          <div class="flex items-start justify-between gap-2 sm:gap-3">
+            <p class="text-xs leading-4 font-medium text-desa-secondary sm:text-sm sm:leading-5">
+              {{ tile.label }}
+            </p>
+            <AppIcon :name="tile.icon" class="size-4! shrink-0 text-desa-dark-green sm:size-5!" />
           </div>
-          <p class="text-[28px] leading-9 font-semibold">
+          <p class="text-2xl leading-8 font-semibold sm:text-[28px] sm:leading-9">
             {{ tile.value }}
             <span v-if="tile.unit" class="text-base font-medium text-desa-secondary">{{
               tile.unit
             }}</span>
           </p>
-          <p class="text-sm text-desa-secondary">{{ tile.caption }}</p>
+          <p class="text-xs leading-4 text-desa-secondary sm:text-sm sm:leading-5">
+            {{ tile.caption }}
+          </p>
         </li>
       </ul>
 
@@ -242,7 +246,71 @@ onMounted(load)
         <h3 class="font-semibold">
           {{ summary.scope.level === 'village' ? 'Per RW dan RT' : 'Per RT' }}
         </h3>
-        <div class="overflow-x-auto rounded-2xl border border-desa-background">
+        <!-- HP: satu kartu per wilayah, tanpa tabel yang harus digeser. -->
+        <ul class="flex flex-col gap-2 md:hidden">
+          <li
+            v-for="row in regionRows"
+            :key="row.key"
+            :class="[
+              'flex flex-col gap-3 rounded-2xl border p-4',
+              row.child
+                ? 'ml-4 border-desa-background bg-desa-background/30'
+                : 'border-desa-background',
+            ]"
+          >
+            <button
+              v-if="row.group"
+              type="button"
+              class="flex items-center justify-between gap-3 text-left font-semibold"
+              :aria-expanded="expanded.has(row.id)"
+              @click="toggle(row.id)"
+            >
+              {{ row.name }}
+              <span class="flex items-center gap-1 text-xs font-medium text-desa-dark-green">
+                {{ expanded.has(row.id) ? 'Tutup RT' : 'Lihat RT' }}
+                <AppIcon
+                  name="arrow-down"
+                  :class="['size-4! transition-transform', expanded.has(row.id) && 'rotate-180']"
+                />
+              </span>
+            </button>
+            <p v-else class="font-semibold">{{ row.name }}</p>
+            <dl class="grid grid-cols-2 gap-2 text-sm">
+              <div
+                v-for="[label, value] in [
+                  ['Surat masuk', row.letters.total],
+                  ['Surat selesai', row.letters.completed],
+                  ['Laporan masuk', row.complaints.total],
+                  ['Laporan berjalan', row.complaints.active],
+                ]"
+                :key="label"
+                class="flex flex-col gap-0.5 rounded-xl bg-desa-background/50 px-3 py-2"
+              >
+                <dt class="text-xs font-medium text-desa-secondary">{{ label }}</dt>
+                <dd class="text-lg leading-6 font-semibold">{{ value }}</dd>
+              </div>
+            </dl>
+            <div class="flex items-center justify-between gap-3 text-sm">
+              <span class="min-w-0 truncate text-desa-secondary">
+                <template v-if="row.top_category"
+                  >Terbanyak:
+                  <span class="font-medium text-desa-black">{{ row.top_category.name }}</span>
+                  ({{ row.top_category.total }})</template
+                >
+                <template v-else>Belum ada laporan</template>
+              </span>
+              <span class="flex shrink-0 items-center gap-1 font-semibold">
+                <span class="font-normal text-desa-secondary">Rating</span>
+                {{ decimal(row.ratings.average) }}
+                <span v-if="row.ratings.total" class="font-normal text-desa-secondary"
+                  >({{ row.ratings.total }})</span
+                >
+              </span>
+            </div>
+          </li>
+        </ul>
+
+        <div class="hidden overflow-x-auto rounded-2xl border border-desa-background md:block">
           <table class="w-full min-w-[720px] text-left text-sm">
             <thead class="bg-desa-background/60 text-desa-secondary">
               <tr>
@@ -303,7 +371,10 @@ onMounted(load)
             </tbody>
           </table>
         </div>
-        <p v-if="summary.scope.level === 'village'" class="text-sm text-desa-secondary lg:hidden">
+        <p
+          v-if="summary.scope.level === 'village'"
+          class="hidden text-sm text-desa-secondary md:block lg:hidden"
+        >
           Geser tabel ke samping untuk melihat semua kolom. Ketuk nama RW untuk melihat RT-nya.
         </p>
       </div>
