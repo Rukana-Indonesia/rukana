@@ -63,6 +63,10 @@ Menu **Peta Laporan** (RT, RW, operator, kepala desa) menampilkan titik laporan 
 
 Bila belum ada titik laporan, peta dibuka di koordinat `MAP_CENTER_LAT` / `MAP_CENTER_LNG` (zoom `MAP_CENTER_ZOOM`) dari `backend/.env`. Isi dengan koordinat kantor atau balai desa.
 
+## Aplikasi di HP (PWA)
+
+Rukana bisa dipasang ke layar utama HP (menu **Lainnya → Pasang Rukana di HP**; di iPhone lewat Safari → Bagikan → Tambah ke Layar Utama). Service worker (`frontend/public/sw.js`) hanya aktif di build produksi dan tidak pernah menyimpan respons `/api`. Untuk mencobanya di lokal: `npm run build && npm run preview`. Di server sungguhan, PWA butuh HTTPS.
+
 ## Fitur AI (Claude)
 
 Tiga fitur memakai Claude lewat SDK resmi `anthropic-ai/sdk`. Isi `ANTHROPIC_API_KEY` di `backend/.env`; model bawaan `claude-opus-5-5` (ganti lewat `ANTHROPIC_MODEL`). Tanpa kunci, aplikasi tetap jalan dan fitur AI menampilkan "belum dikonfigurasi".
