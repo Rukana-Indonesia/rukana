@@ -1,0 +1,91 @@
+# Stack Rukana lengkap (OrbStack atau Docker engine Sokudo).
+# Tidak ada bind mount: kode masuk ke image saat build, jadi setelah mengubah
+# kode jalankan Build lalu Up lagi.
+# Buka http://localhost:8080 (SPA + proxy API). Rahasia diambil dari backend/.env.
+# Nama proyek sendiri supaya tidak bentrok dengan MySQL dev di docker-compose.yml.
+name: rukana-stack
+
+x-backend: &backend
+  build:
+    context: ./backend
+    dockerfile: ../docker/backend.Dockerfile
+    additional_contexts:
+      docker: ./docker
+  image: rukana-backend:dev
+  env_file: ./backend/.env
+  environment:
+    APP_URL: http://localhost:8080
+    FRONTEND_URL: http://localhost:8080
+    SANCTUM_STATEFUL_DOMAINS: localhost:8080,127.0.0.1:8080
+    SESSION_DOMAIN: localhost
+    DB_HOST: mysql
+    DB_PORT: "3306"
+    LOG_CHANNEL: stderr
+    PHP_CLI_SERVER_WORKERS: "4"
+  volumes:
+    - rukana-storage:/app/storage/app
+  restart: unless-stopped
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: rukana
+      MYSQL_USER: rukana
+      MYSQL_PASSWORD: rukana
+      MYSQL_ROOT_PASSWORD: root
+      TZ: UTC
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - rukana-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  api:
+    <<: *backend
+    command: ["rukana-api-start"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
+
+  queue:
+    <<: *backend
+    command: ["php", "artisan", "queue:work", "--timeout=300"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  scheduler:
+    <<: *backend
+    command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      additional_contexts:
+        docker: ./docker
+    image: rukana-web:dev
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  rukana-mysql:
+  rukana-storage:

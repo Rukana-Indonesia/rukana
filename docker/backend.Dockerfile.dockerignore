@@ -1,0 +1,14 @@
+.env
+.env.*
+.phpunit.cache
+.phpunit.result.cache
+node_modules
+public/hot
+public/storage
+storage/app/private/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+**/.DS_Store
+**/._*
