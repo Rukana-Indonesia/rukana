@@ -184,6 +184,9 @@ class LetterController extends Controller
         return $this->resource($letter)->additional(['message' => match ($action) {
             'reject' => "Surat {$letter->code} ditolak.",
             'pickup' => "Surat {$letter->code} selesai diambil.",
+            'ready' => $request->file('file')
+                ? "Salinan surat resmi {$letter->code} berhasil diunggah dan dikirim ke warga."
+                : "Surat {$letter->code} siap diambil di kantor kelurahan.",
             default => "Surat {$letter->code} sekarang berstatus {$letter->status->label()}.",
         }]);
     }

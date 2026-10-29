@@ -43,7 +43,7 @@ class ServiceTypeSeeder extends Seeder
             [
                 'slug' => 'keterangan-usaha',
                 'name' => 'Surat Keterangan Usaha',
-                'purpose' => 'Keterangan bahwa warga memiliki usaha, mis. untuk pengajuan KUR atau izin usaha mikro.',
+                'purpose' => 'Keterangan bahwa warga memiliki usaha untuk pengajuan KUR atau izin usaha mikro.',
                 'requirements' => ['Surat Pengantar RT'],
                 'flow' => LetterFlow::Village,
                 'estimated_days' => 2,

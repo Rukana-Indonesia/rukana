@@ -37,7 +37,15 @@ function onRated(rating, message) {
   notice.value = message
 }
 const actions = computed(() => letter.value?.can.actions ?? [])
-const primaryActions = computed(() => actions.value.filter((a) => a !== 'reject'))
+const otherPrimaryActions = computed(() =>
+  actions.value.filter((a) => a !== 'reject' && a !== 'ready'),
+)
+const statusLabel = computed(() => {
+  if (letter.value?.status === 'ready_for_pickup') {
+    return officialAttachment.value ? 'Siap Diunduh' : 'Siap Diambil di Loket'
+  }
+  return letter.value?.status_label ?? ''
+})
 const history = computed(() => [...(letter.value?.steps ?? [])].reverse())
 const ticketUrl = computed(
   () => `${window.location.origin}/cek-tiket?kode=${letter.value?.code ?? ''}`,
@@ -157,6 +165,8 @@ async function copyCode() {
 const dialog = reactive({
   open: false,
   action: 'verify',
+  readyMode: 'upload', // 'upload' | 'pickup'
+  filePreview: '',
   note: '',
   noteError: '',
   file: null,
@@ -165,10 +175,38 @@ const dialog = reactive({
   submitting: false,
 })
 
+const dialogTitle = computed(() => {
+  if (dialog.action === 'ready') {
+    return dialog.readyMode === 'upload'
+      ? 'Unggah & Kirim Salinan Digital (SKU)'
+      : 'Tandai Siap Diambil di Kelurahan'
+  }
+  return actionText[dialog.action]?.title ?? 'Konfirmasi'
+})
+
+const dialogDescription = computed(() => {
+  if (dialog.action === 'ready') {
+    return dialog.readyMode === 'upload'
+      ? 'Unggah hasil scan surat fisik yang sudah dicetak, ditandatangani, dan dicap stempel basah. Berkas akan langsung dikirim ke akun warga agar bisa diunduh.'
+      : 'Beri tahu pemohon bahwa surat fisik bertanda tangan dan cap basah asli sudah selesai dan siap diambil langsung di kantor kelurahan.'
+  }
+  return actionText[dialog.action]?.description ?? ''
+})
+
+const dialogButtonText = computed(() => {
+  if (dialog.action === 'ready') {
+    return dialog.readyMode === 'upload' ? 'Unggah & Kirim ke Warga' : 'Tandai Siap Diambil'
+  }
+  return actionText[dialog.action]?.button ?? 'Simpan'
+})
+
 function openAction(action) {
+  if (dialog.filePreview) URL.revokeObjectURL(dialog.filePreview)
   Object.assign(dialog, {
     open: true,
     action,
+    readyMode: 'upload',
+    filePreview: '',
     note: '',
     noteError: '',
     file: null,
@@ -177,21 +215,65 @@ function openAction(action) {
   })
 }
 
+function openReadyAction(mode) {
+  if (dialog.filePreview) URL.revokeObjectURL(dialog.filePreview)
+  Object.assign(dialog, {
+    open: true,
+    action: 'ready',
+    readyMode: mode,
+    filePreview: '',
+    note: '',
+    noteError: '',
+    file: null,
+    fileError: '',
+    error: '',
+  })
+}
+
+function onDialogFileChange(e) {
+  const file = e.target.files?.[0] ?? null
+  dialog.file = file
+  dialog.fileError = ''
+  if (dialog.filePreview) {
+    URL.revokeObjectURL(dialog.filePreview)
+    dialog.filePreview = ''
+  }
+  if (file && (file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.pdf'))) {
+    try {
+      dialog.filePreview = URL.createObjectURL(file)
+    } catch {
+      dialog.filePreview = ''
+    }
+  }
+}
+
 async function submitAction() {
   dialog.submitting = true
   dialog.error = ''
   dialog.noteError = ''
   dialog.fileError = ''
 
+  if (dialog.action === 'ready' && dialog.readyMode === 'upload' && !dialog.file) {
+    dialog.fileError = 'Silakan pilih berkas scan surat resmi (PDF atau foto) terlebih dahulu.'
+    dialog.submitting = false
+    return
+  }
+
   const body = new FormData()
   if (dialog.note) body.append('note', dialog.note)
-  if (dialog.file) body.append('file', dialog.file)
+  if (dialog.file && dialog.action === 'ready' && dialog.readyMode === 'upload') {
+    body.append('file', dialog.file)
+  }
 
   try {
     const { data } = await api.post(`/letters/${letter.value.id}/${dialog.action}`, body)
     letter.value = data.data
     notice.value = data.message
     dialog.open = false
+    if (dialog.filePreview) {
+      URL.revokeObjectURL(dialog.filePreview)
+      dialog.filePreview = ''
+    }
   } catch (err) {
     const errors = fieldErrors(err)
     dialog.noteError = errors.note ?? ''
@@ -272,7 +354,7 @@ async function submitCancel() {
               Diajukan {{ formatDate(letter.submitted_at, true) }} · Alur {{ letter.flow_label }}
             </p>
           </div>
-          <AppBadge :variant="statusBadge[letter.status]">{{ letter.status_label }}</AppBadge>
+          <AppBadge :variant="statusBadge[letter.status]">{{ statusLabel }}</AppBadge>
         </div>
 
         <AppAlert v-if="letter.status === 'rejected'" variant="warning">
@@ -289,10 +371,13 @@ async function submitCancel() {
         <AppAlert v-else-if="letter.status === 'ready_for_pickup' && isOwner" variant="success">
           <strong>Surat sudah selesai!</strong>
           <template v-if="officialAttachment">
-            Salinan resmi digital sudah dapat diunduh di bawah. Anda juga tetap dapat mengambil berkas fisik asli bertanda tangan dan cap basah di kantor desa/kelurahan bila diperlukan.
+            Salinan resmi digital telah dikirim oleh kelurahan dan siap diunduh di bawah ini. Anda
+            juga tetap dapat mengambil berkas fisik asli bertanda tangan dan cap basah di kantor
+            desa/kelurahan bila diperlukan.
           </template>
           <template v-else>
-            Surat sudah bisa diambil di kantor desa. {{ letter.service?.notes }}
+            Surat fisik bertanda tangan dan cap basah asli sudah siap diambil langsung di kantor
+            desa/kelurahan. Silakan datang ke loket pelayanan pada jam kerja.
           </template>
         </AppAlert>
 
@@ -317,10 +402,7 @@ async function submitCancel() {
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <AppButton
-              variant="secondary"
-              @click="viewAttachment(officialAttachment)"
-            >
+            <AppButton variant="secondary" @click="viewAttachment(officialAttachment)">
               <AppIcon name="receipt-search" />
               Pratinjau
             </AppButton>
@@ -338,7 +420,24 @@ async function submitCancel() {
           v-if="actions.length || letter.can.print || isOwner"
           class="flex flex-col gap-3 sm:flex-row sm:flex-wrap"
         >
-          <AppButton v-for="action in primaryActions" :key="action" @click="openAction(action)">
+          <!-- Jika aksi ready tersedia untuk desa, pisahkan jadi 2 tombol jelas -->
+          <!-- <template v-if="actions.includes('ready')">
+            <AppButton @click="openReadyAction('upload')">
+              <AppIcon name="document-download" />
+              Unggah & Kirim Salinan Digital
+            </AppButton>
+            <AppButton variant="secondary" @click="openReadyAction('pickup')">
+              <AppIcon name="ticket" />
+              Siap Diambil di Kelurahan (Fisik)
+            </AppButton>
+          </template> -->
+
+          <!-- Aksi primary lainnya (verify, approve, receive, pickup) -->
+          <AppButton
+            v-for="action in otherPrimaryActions"
+            :key="action"
+            @click="openAction(action)"
+          >
             <AppIcon :name="actionText[action].icon" />
             {{ actionText[action].button }}
           </AppButton>
@@ -386,6 +485,68 @@ async function submitCancel() {
             <AppIcon name="close-circle" />
             Batalkan Pengajuan
           </AppButton>
+        </div>
+      </section>
+
+      <!-- Bagian Penerbitan Surat Khusus Operator Desa (Ambil Langsung vs Upload Terpisah) -->
+      <section
+        v-if="actions.includes('ready')"
+        class="flex flex-col gap-5 rounded-2xl border-2 border-desa-dark-green/20 bg-white p-6 shadow-xs sm:p-8"
+      >
+        <div class="flex items-center gap-3">
+          <span
+            class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-desa-foreshadow text-desa-dark-green"
+          >
+            <AppIcon name="document-text" class="size-6!" />
+          </span>
+          <div>
+            <h2 class="text-lg font-semibold text-slate-800">Penerbitan Surat (Kelurahan)</h2>
+            <p class="text-sm text-desa-secondary">
+              Pilih metode penyerahan surat untuk pemohon sesuai kebutuhan:
+            </p>
+          </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+          <!-- Pilihan 1: Upload Salinan Digital (Kirim ke Warga) -->
+          <div
+            class="flex flex-col justify-between gap-4 rounded-2xl border border-desa-background bg-desa-background/30 p-5 transition-all duration-200 hover:border-desa-dark-green/50 hover:bg-desa-foreshadow/20"
+          >
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center gap-2 text-desa-dark-green font-semibold">
+                <AppIcon name="document-download" class="size-5!" />
+                <span>1. Kirim Salinan Digital (Upload)</span>
+              </div>
+              <p class="text-sm text-desa-secondary leading-relaxed">
+                Scan surat fisik yang sudah dicetak, ditandatangani, dan dicap stempel basah. Berkas
+                akan langsung dikirim ke akun pemohon agar warga dapat mengunduhnya secara mandiri.
+              </p>
+            </div>
+            <AppButton @click="openReadyAction('upload')">
+              <AppIcon name="document-download" />
+              Unggah & Kirim ke Warga
+            </AppButton>
+          </div>
+
+          <!-- Pilihan 2: Ambil Langsung di Kantor Kelurahan (Fisik) -->
+          <div
+            class="flex flex-col justify-between gap-4 rounded-2xl border border-desa-background bg-desa-background/30 p-5 transition-all duration-200 hover:border-desa-dark-green/50 hover:bg-desa-foreshadow/20"
+          >
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center gap-2 text-slate-800 font-semibold">
+                <AppIcon name="ticket" class="size-5! text-desa-secondary" />
+                <span>2. Ambil Langsung di Kelurahan (Fisik)</span>
+              </div>
+              <p class="text-sm text-desa-secondary leading-relaxed">
+                Surat fisik asli disimpan di loket pelayanan kelurahan. Warga akan diberi tahu untuk
+                datang langsung mengambil berkas fisik bertanda tangan dan cap basah asli.
+              </p>
+            </div>
+            <AppButton variant="secondary" @click="openReadyAction('pickup')">
+              <AppIcon name="ticket" />
+              Tandai Siap Diambil di Loket
+            </AppButton>
+          </div>
         </div>
       </section>
 
@@ -538,11 +699,7 @@ async function submitCancel() {
       </div>
     </template>
 
-    <AppModal
-      v-model:open="dialog.open"
-      :title="actionText[dialog.action].title"
-      :description="actionText[dialog.action].description"
-    >
+    <AppModal v-model:open="dialog.open" :title="dialogTitle" :description="dialogDescription">
       <form
         id="letter-action"
         class="flex flex-col gap-4"
@@ -551,35 +708,95 @@ async function submitCancel() {
       >
         <AppAlert v-if="dialog.error">{{ dialog.error }}</AppAlert>
 
-        <div v-if="dialog.action === 'ready'" class="flex flex-col gap-2 rounded-xl bg-desa-foreshadow/60 p-4 border border-desa-dark-green/20">
-          <label class="text-sm font-semibold text-desa-dark-green">
-            Unggah Berkas Scan Surat Resmi (PDF/Foto, opsional)
-          </label>
+        <!-- Khusus Aksi Ready Mode: Upload Digital -->
+        <div
+          v-if="dialog.action === 'ready' && dialog.readyMode === 'upload'"
+          class="flex flex-col gap-3 rounded-2xl bg-desa-foreshadow/60 p-4 border border-desa-dark-green/30"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-sm font-semibold text-desa-dark-green">
+              Berkas Scan Surat Resmi (Wajib)
+            </label>
+            <span class="text-xs text-desa-secondary">PDF atau Foto maks. 5 MB</span>
+          </div>
+
           <input
             type="file"
             accept="application/pdf,image/*"
             class="block w-full text-sm text-desa-secondary file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-white file:text-desa-dark-green file:border file:border-desa-dark-green/30 hover:file:bg-desa-foreshadow cursor-pointer"
-            @change="dialog.file = $event.target.files?.[0] ?? null"
+            @change="onDialogFileChange"
           />
+
+          <!-- Preview Berkas yang Dipilih -->
+          <div
+            v-if="dialog.file"
+            class="flex items-center gap-3 rounded-xl bg-white p-2.5 border border-desa-dark-green/20"
+          >
+            <div
+              v-if="dialog.filePreview && dialog.file.type.startsWith('image/')"
+              class="relative size-12 shrink-0 overflow-hidden rounded-lg border border-desa-background"
+            >
+              <img
+                :src="dialog.filePreview"
+                :alt="dialog.file.name"
+                class="size-full object-cover"
+              />
+            </div>
+            <div
+              v-else
+              class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-desa-foreshadow text-desa-dark-green font-bold text-xs"
+            >
+              {{ dialog.file.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'FILE' }}
+            </div>
+            <div class="flex min-w-0 flex-col">
+              <p class="truncate text-sm font-semibold text-slate-800">{{ dialog.file.name }}</p>
+              <p class="text-xs text-desa-secondary">{{ formatSize(dialog.file.size) }}</p>
+            </div>
+          </div>
+
           <p class="text-xs text-desa-secondary">
-            Bila diunggah, warga dapat langsung mengunduh surat resmi ini dari aplikasi tanpa harus datang ke kantor desa.
+            Berkas ini akan terkirim langsung ke akun pemohon agar warga dapat mengunduh salinan
+            digital dari aplikasi.
           </p>
-          <p v-if="dialog.fileError" class="text-xs font-medium text-desa-red">
+          <p v-if="dialog.fileError" class="text-xs font-semibold text-desa-red">
             {{ dialog.fileError }}
           </p>
+        </div>
+
+        <!-- Khusus Aksi Ready Mode: Ambil Fisik di Kelurahan -->
+        <div
+          v-else-if="dialog.action === 'ready' && dialog.readyMode === 'pickup'"
+          class="flex items-start gap-3 rounded-xl bg-desa-background/50 p-4 border border-desa-background"
+        >
+          <AppIcon name="ticket" class="size-6! text-desa-dark-green shrink-0 mt-0.5" />
+          <div class="flex flex-col gap-1 text-sm text-desa-secondary">
+            <p class="font-semibold text-slate-800">Penyerahan Berkas Fisik Asli</p>
+            <p class="text-xs">
+              Warga akan menerima pemberitahuan bahwa surat fisik asli sudah selesai dan siap
+              diambil langsung di loket pelayanan kelurahan.
+            </p>
+          </div>
         </div>
 
         <div class="flex flex-col gap-1">
           <AppTextarea
             v-model="dialog.note"
-            :label="dialog.action === 'reject' ? 'Alasan penolakan' : 'Catatan (opsional)'"
+            :label="
+              dialog.action === 'reject'
+                ? 'Alasan penolakan'
+                : dialog.action === 'ready' && dialog.readyMode === 'pickup'
+                  ? 'Catatan Pengambilan (opsional)'
+                  : 'Catatan (opsional)'
+            "
             maxlength="500"
             :placeholder="
               dialog.action === 'reject'
                 ? 'Mis. surat pengantar RT belum lengkap atau tidak terbaca'
                 : dialog.action === 'receive'
                   ? 'Mis. Surat diterima, estimasi selesai besok siang'
-                  : ''
+                  : dialog.action === 'ready' && dialog.readyMode === 'pickup'
+                    ? 'Mis. Silakan ambil di loket pelayanan pada jam kerja (08.00 - 15.00 WIB) membawa KTP asli.'
+                    : 'Mis. Surat resmi selesai diproses.'
             "
             :error="dialog.noteError"
           />
@@ -607,7 +824,7 @@ async function submitCancel() {
           :variant="dialog.action === 'reject' ? 'danger' : 'primary'"
           :loading="dialog.submitting"
         >
-          {{ actionText[dialog.action].button }}
+          {{ dialogButtonText }}
         </AppButton>
       </template>
     </AppModal>
@@ -660,7 +877,11 @@ async function submitCancel() {
       :open="previewFile.open"
       :title="previewFile.title"
       :description="previewFile.subtitle"
-      @update:open="(val) => { if (!val) closeAttachmentPreview() }"
+      @update:open="
+        (val) => {
+          if (!val) closeAttachmentPreview()
+        }
+      "
     >
       <div v-if="previewFile.loading" class="flex flex-col items-center justify-center py-12 gap-3">
         <span class="text-sm font-medium text-desa-secondary">Memuat pratinjau berkas…</span>
@@ -684,16 +905,13 @@ async function submitCancel() {
           v-else-if="previewFile.isPdf"
           class="w-full h-[65vh] rounded-xl overflow-hidden border border-desa-background"
         >
-          <iframe
-            :src="previewFile.blobUrl"
-            class="size-full"
-            title="Pratinjau PDF"
-          />
+          <iframe :src="previewFile.blobUrl" class="size-full" title="Pratinjau PDF" />
         </div>
 
         <!-- Berkas lain -->
         <div v-else class="py-8 text-center text-desa-secondary font-medium">
-          Format berkas tidak mendukung pratinjau langsung di peramban. Silakan unduh berkas untuk membukanya.
+          Format berkas tidak mendukung pratinjau langsung di peramban. Silakan unduh berkas untuk
+          membukanya.
         </div>
       </div>
 

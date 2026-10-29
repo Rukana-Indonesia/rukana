@@ -43,7 +43,22 @@ class LetterWorkflow
     public function levelFor(string $action, LetterRequest $letter): ?Level
     {
         if ($action === 'reject') {
+            if ($letter->status === LetterStatus::ReadyForPickup || $letter->status->isFinal()) {
+                return null;
+            }
+
             return $letter->status->currentLevel($letter->flow);
+        }
+
+        // Jika surat sudah memiliki berkas surat resmi (dikirim digital), tidak ada aksi ambil fisik lagi
+        if ($action === 'pickup') {
+            $hasOfficial = $letter->relationLoaded('attachments')
+                ? $letter->attachments->contains(fn ($a) => $a->uploaded_by !== null && $a->uploaded_by !== $letter->user_id)
+                : $letter->attachments()->where('uploaded_by', '!=', $letter->user_id)->exists();
+
+            if ($hasOfficial) {
+                return null;
+            }
         }
 
         if ($letter->flow === LetterFlow::Village) {
@@ -91,8 +106,18 @@ class LetterWorkflow
                 }
 
                 $from = $letter->status;
-                $to = $action === 'reject' ? LetterStatus::Rejected : $this->next($from, $letter->flow);
-                $stepAction = $action === 'reject' ? LetterAction::Rejected : ($action === 'receive' && $letter->flow === LetterFlow::Village ? LetterAction::Received : self::TRANSITIONS[$action][2]);
+                if ($action === 'reject') {
+                    $to = LetterStatus::Rejected;
+                    $stepAction = LetterAction::Rejected;
+                } elseif ($action === 'ready' && $file !== null) {
+                    // Ketika desa mengunggah berkas scan resmi, surat langsung selesai dan terkirim ke warga
+                    $to = LetterStatus::Completed;
+                    $stepAction = LetterAction::PickedUp;
+                    $note = $note ?: 'Salinan resmi digital diterbitkan dan dikirim ke warga.';
+                } else {
+                    $to = $this->next($from, $letter->flow);
+                    $stepAction = $action === 'receive' && $letter->flow === LetterFlow::Village ? LetterAction::Received : self::TRANSITIONS[$action][2];
+                }
 
                 $letter->fill([
                     'status' => $to,
