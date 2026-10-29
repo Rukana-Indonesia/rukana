@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import RatingCard from '@/components/ratings/RatingCard.vue'
@@ -28,6 +28,9 @@ const nikLoading = ref(false)
 const copied = ref(false)
 
 const isOwner = computed(() => letter.value?.applicant?.id === auth.user?.id)
+const officialAttachment = computed(
+  () => letter.value?.attachments?.find((a) => a.is_official) ?? null,
+)
 
 function onRated(rating, message) {
   letter.value = { ...letter.value, rating, can: { ...letter.value.can, rate: false } }
@@ -85,6 +88,61 @@ async function open(path, filename) {
   }
 }
 
+const previewFile = reactive({
+  open: false,
+  loading: false,
+  title: '',
+  subtitle: '',
+  url: '',
+  blobUrl: '',
+  isImage: false,
+  isPdf: false,
+  name: '',
+})
+
+async function viewAttachment(file) {
+  if (previewFile.blobUrl) {
+    URL.revokeObjectURL(previewFile.blobUrl)
+    previewFile.blobUrl = ''
+  }
+  const isImage = file.mime?.startsWith('image/') || /\.(jpe?g|png|webp|gif)$/i.test(file.name)
+  const isPdf = file.mime === 'application/pdf' || /\.pdf$/i.test(file.name)
+
+  Object.assign(previewFile, {
+    open: true,
+    loading: true,
+    title: `Pratinjau: ${file.label || file.name}`,
+    subtitle: `${file.name} · ${formatSize(file.size_bytes)}`,
+    url: file.url,
+    blobUrl: '',
+    isImage,
+    isPdf,
+    name: file.name,
+  })
+
+  try {
+    const { data } = await api.get(file.url, { baseURL: '', responseType: 'blob' })
+    previewFile.blobUrl = URL.createObjectURL(data)
+  } catch (err) {
+    error.value = errorMessage(err, 'Gagal memuat pratinjau berkas.')
+    previewFile.open = false
+  } finally {
+    previewFile.loading = false
+  }
+}
+
+function closeAttachmentPreview() {
+  previewFile.open = false
+  if (previewFile.blobUrl) {
+    URL.revokeObjectURL(previewFile.blobUrl)
+    previewFile.blobUrl = ''
+  }
+}
+
+onBeforeUnmount(() => {
+  if (previewFile.blobUrl) URL.revokeObjectURL(previewFile.blobUrl)
+})
+
 async function copyCode() {
   try {
     await navigator.clipboard.writeText(letter.value.code)
@@ -101,28 +159,44 @@ const dialog = reactive({
   action: 'verify',
   note: '',
   noteError: '',
+  file: null,
+  fileError: '',
   error: '',
   submitting: false,
 })
 
 function openAction(action) {
-  Object.assign(dialog, { open: true, action, note: '', noteError: '', error: '' })
+  Object.assign(dialog, {
+    open: true,
+    action,
+    note: '',
+    noteError: '',
+    file: null,
+    fileError: '',
+    error: '',
+  })
 }
 
 async function submitAction() {
   dialog.submitting = true
   dialog.error = ''
   dialog.noteError = ''
+  dialog.fileError = ''
+
+  const body = new FormData()
+  if (dialog.note) body.append('note', dialog.note)
+  if (dialog.file) body.append('file', dialog.file)
+
   try {
-    const { data } = await api.post(`/letters/${letter.value.id}/${dialog.action}`, {
-      note: dialog.note || undefined,
-    })
+    const { data } = await api.post(`/letters/${letter.value.id}/${dialog.action}`, body)
     letter.value = data.data
     notice.value = data.message
     dialog.open = false
   } catch (err) {
-    dialog.noteError = fieldErrors(err).note ?? ''
-    if (!dialog.noteError) dialog.error = errorMessage(err)
+    const errors = fieldErrors(err)
+    dialog.noteError = errors.note ?? ''
+    dialog.fileError = errors.file ?? ''
+    if (!dialog.noteError && !dialog.fileError) dialog.error = errorMessage(err)
     // Surat sudah dipindahkan pengurus lain: muat ulang supaya tombolnya sesuai.
     if (err.response?.status === 409) load()
   } finally {
@@ -213,8 +287,52 @@ async function submitCancel() {
           <template v-if="isOwner"> Anda bisa mengajukan surat baru kapan saja.</template>
         </AppAlert>
         <AppAlert v-else-if="letter.status === 'ready_for_pickup' && isOwner" variant="success">
-          Surat sudah bisa diambil di kantor desa. {{ letter.service?.notes }}
+          <strong>Surat sudah selesai!</strong>
+          <template v-if="officialAttachment">
+            Salinan resmi digital sudah dapat diunduh di bawah. Anda juga tetap dapat mengambil berkas fisik asli bertanda tangan dan cap basah di kantor desa/kelurahan bila diperlukan.
+          </template>
+          <template v-else>
+            Surat sudah bisa diambil di kantor desa. {{ letter.service?.notes }}
+          </template>
         </AppAlert>
+
+        <!-- Kartu download berkas surat resmi yang sudah diterbitkan desa -->
+        <div
+          v-if="officialAttachment"
+          class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-desa-foreshadow border border-desa-dark-green/20 p-5"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <span
+              class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-desa-dark-green text-white"
+            >
+              <AppIcon name="document-text" class="size-6!" />
+            </span>
+            <div class="flex min-w-0 flex-col">
+              <p class="leading-5 font-semibold text-desa-dark-green truncate">
+                Salinan Surat Resmi ({{ letter.service?.name }})
+              </p>
+              <p class="text-sm text-desa-secondary truncate">
+                {{ officialAttachment.name }} · {{ formatSize(officialAttachment.size_bytes) }}
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <AppButton
+              variant="secondary"
+              @click="viewAttachment(officialAttachment)"
+            >
+              <AppIcon name="receipt-search" />
+              Pratinjau
+            </AppButton>
+            <AppButton
+              :loading="opening === officialAttachment.url"
+              @click="open(officialAttachment.url, officialAttachment.name)"
+            >
+              <AppIcon name="document-download" />
+              Unduh Surat Resmi
+            </AppButton>
+          </div>
+        </div>
 
         <div
           v-if="actions.length || letter.can.print || isOwner"
@@ -334,28 +452,51 @@ async function submitCancel() {
 
           <div class="flex flex-col gap-3">
             <h3 class="font-semibold">Lampiran</h3>
-            <ul v-if="letter.attachments?.length" class="grid gap-2 sm:grid-cols-2">
-              <li v-for="file in letter.attachments" :key="file.id">
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-3 rounded-2xl border border-desa-background p-3 text-left transition-all duration-300 hover:border-desa-dark-green disabled:opacity-60"
-                  :disabled="opening === file.url"
-                  @click="open(file.url, file.name)"
+            <ul v-if="letter.attachments?.length" class="grid gap-3 sm:grid-cols-2">
+              <li
+                v-for="file in letter.attachments"
+                :key="file.id"
+                class="flex items-center justify-between gap-3 rounded-2xl border border-desa-background bg-desa-background/30 p-3 transition-all duration-200 hover:border-desa-dark-green/40 hover:bg-desa-foreshadow/30"
+              >
+                <div
+                  class="flex items-center gap-3 min-w-0 cursor-pointer"
+                  title="Klik untuk pratinjau"
+                  @click="viewAttachment(file)"
                 >
                   <span
-                    class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-desa-foreshadow"
+                    class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-desa-foreshadow text-desa-dark-green transition-transform hover:scale-105"
                   >
-                    <AppIcon name="document-text" class="size-5! text-desa-dark-green" />
+                    <AppIcon name="document-text" class="size-5!" />
                   </span>
                   <span class="flex min-w-0 flex-col">
-                    <span class="truncate text-sm font-semibold">{{
+                    <span class="truncate text-sm font-semibold text-slate-800">{{
                       file.label || file.name
                     }}</span>
                     <span class="truncate text-xs text-desa-secondary"
                       >{{ file.name }} · {{ formatSize(file.size_bytes) }}</span
                     >
                   </span>
-                </button>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    class="inline-flex h-9 items-center gap-1 rounded-xl px-2.5 text-xs font-semibold text-desa-dark-green hover:bg-desa-dark-green/10 cursor-pointer"
+                    title="Lihat Pratinjau"
+                    @click="viewAttachment(file)"
+                  >
+                    <AppIcon name="receipt-search" class="size-4!" />
+                    Pratinjau
+                  </button>
+                  <button
+                    type="button"
+                    class="inline-flex h-9 items-center gap-1 rounded-xl px-2.5 text-xs font-medium text-desa-secondary hover:bg-desa-background hover:text-slate-800 cursor-pointer"
+                    title="Unduh Berkas"
+                    :disabled="opening === file.url"
+                    @click="open(file.url, file.name)"
+                  >
+                    <AppIcon name="document-download" class="size-4!" />
+                  </button>
+                </div>
               </li>
             </ul>
             <p v-else class="text-desa-secondary">Tidak ada lampiran.</p>
@@ -409,13 +550,43 @@ async function submitCancel() {
         @submit.prevent="submitAction"
       >
         <AppAlert v-if="dialog.error">{{ dialog.error }}</AppAlert>
-        <AppTextarea
-          v-model="dialog.note"
-          :label="dialog.action === 'reject' ? 'Alasan penolakan' : 'Catatan (opsional)'"
-          maxlength="500"
-          :placeholder="dialog.action === 'reject' ? 'Mis. foto KTP tidak terbaca' : ''"
-          :error="dialog.noteError"
-        />
+
+        <div v-if="dialog.action === 'ready'" class="flex flex-col gap-2 rounded-xl bg-desa-foreshadow/60 p-4 border border-desa-dark-green/20">
+          <label class="text-sm font-semibold text-desa-dark-green">
+            Unggah Berkas Scan Surat Resmi (PDF/Foto, opsional)
+          </label>
+          <input
+            type="file"
+            accept="application/pdf,image/*"
+            class="block w-full text-sm text-desa-secondary file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-white file:text-desa-dark-green file:border file:border-desa-dark-green/30 hover:file:bg-desa-foreshadow cursor-pointer"
+            @change="dialog.file = $event.target.files?.[0] ?? null"
+          />
+          <p class="text-xs text-desa-secondary">
+            Bila diunggah, warga dapat langsung mengunduh surat resmi ini dari aplikasi tanpa harus datang ke kantor desa.
+          </p>
+          <p v-if="dialog.fileError" class="text-xs font-medium text-desa-red">
+            {{ dialog.fileError }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <AppTextarea
+            v-model="dialog.note"
+            :label="dialog.action === 'reject' ? 'Alasan penolakan' : 'Catatan (opsional)'"
+            maxlength="500"
+            :placeholder="
+              dialog.action === 'reject'
+                ? 'Mis. surat pengantar RT belum lengkap atau tidak terbaca'
+                : dialog.action === 'receive'
+                  ? 'Mis. Surat diterima, estimasi selesai besok siang'
+                  : ''
+            "
+            :error="dialog.noteError"
+          />
+          <p v-if="dialog.action === 'receive'" class="text-xs text-desa-secondary">
+            Tuliskan perkiraan waktu selesai agar pemohon dapat melihat estimasi proses surat.
+          </p>
+        </div>
         <div v-if="dialog.action === 'reject'" class="flex flex-wrap gap-2">
           <button
             v-for="reason in rejectReasons"
@@ -481,6 +652,64 @@ async function submitCancel() {
         >
           Ya, Batalkan
         </AppButton>
+      </template>
+    </AppModal>
+
+    <!-- Modal Pratinjau Lampiran / Berkas Resmi -->
+    <AppModal
+      :open="previewFile.open"
+      :title="previewFile.title"
+      :description="previewFile.subtitle"
+      @update:open="(val) => { if (!val) closeAttachmentPreview() }"
+    >
+      <div v-if="previewFile.loading" class="flex flex-col items-center justify-center py-12 gap-3">
+        <span class="text-sm font-medium text-desa-secondary">Memuat pratinjau berkas…</span>
+      </div>
+
+      <div v-else-if="previewFile.blobUrl" class="flex flex-col items-center justify-center">
+        <!-- Gambar -->
+        <div
+          v-if="previewFile.isImage"
+          class="max-h-[70vh] w-full overflow-auto rounded-xl bg-desa-background/40 p-2 flex items-center justify-center"
+        >
+          <img
+            :src="previewFile.blobUrl"
+            :alt="previewFile.name"
+            class="max-h-[65vh] max-w-full rounded-lg object-contain shadow-xs"
+          />
+        </div>
+
+        <!-- PDF -->
+        <div
+          v-else-if="previewFile.isPdf"
+          class="w-full h-[65vh] rounded-xl overflow-hidden border border-desa-background"
+        >
+          <iframe
+            :src="previewFile.blobUrl"
+            class="size-full"
+            title="Pratinjau PDF"
+          />
+        </div>
+
+        <!-- Berkas lain -->
+        <div v-else class="py-8 text-center text-desa-secondary font-medium">
+          Format berkas tidak mendukung pratinjau langsung di peramban. Silakan unduh berkas untuk membukanya.
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex w-full items-center justify-between gap-3">
+          <a
+            v-if="previewFile.blobUrl"
+            :href="previewFile.blobUrl"
+            :download="previewFile.name"
+            class="text-sm font-medium text-desa-dark-green hover:underline inline-flex items-center gap-1.5"
+          >
+            <AppIcon name="document-download" class="size-4!" />
+            Unduh Berkas
+          </a>
+          <AppButton variant="secondary" @click="closeAttachmentPreview">Tutup</AppButton>
+        </div>
       </template>
     </AppModal>
   </div>

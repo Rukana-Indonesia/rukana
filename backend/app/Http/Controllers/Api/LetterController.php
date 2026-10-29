@@ -48,7 +48,7 @@ class LetterController extends Controller
             'per_page' => ['nullable', 'integer', 'between:1,50'],
         ]);
         $inbox = $request->boolean('inbox');
-        $awaiting = $this->awaiting($request);
+        $level = $request->user()->role->actingLevel();
 
         $counts = $this->letters($request)
             ->selectRaw('status, count(*) as total')
@@ -57,7 +57,7 @@ class LetterController extends Controller
 
         $letters = $this->letters($request)
             ->with(['serviceType', 'user', 'rt', 'rw', 'rating'])
-            ->when($inbox, fn (Builder $q) => $q->whereIn('status', $awaiting))
+            ->when($inbox, fn (Builder $q) => $level ? $q->where('current_level', $level) : $q->whereRaw('0 = 1'))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $status === 'active'
                 ? $q->whereNotIn('status', LetterStatus::finals())
                 : $q->where('status', $status))
@@ -76,7 +76,7 @@ class LetterController extends Controller
         return LetterResource::collection($letters)->additional([
             'meta' => [
                 'counts' => collect(LetterStatus::cases())->mapWithKeys(fn (LetterStatus $s) => [$s->value => (int) ($counts[$s->value] ?? 0)]),
-                'inbox' => (int) collect($awaiting)->sum(fn (LetterStatus $s) => $counts[$s->value] ?? 0),
+                'inbox' => $level ? (int) $this->letters($request)->where('current_level', $level)->count() : 0,
             ],
         ]);
     }
@@ -105,12 +105,12 @@ class LetterController extends Controller
                     'village_id' => $user->village_id,
                     'rw_id' => $user->rw_id,
                     'rt_id' => $user->rt_id,
-                    'purpose' => $request->validated('purpose'),
+                    'purpose' => $request->validated('purpose') ?: ($service->purpose ?? $service->name),
                     'form_data' => $request->formData(),
                     'nik_encrypted' => $nik,
                     'nik_masked' => $nik ? substr($nik, 0, 4).str_repeat('*', 8).substr($nik, -4) : null,
                     'status' => LetterStatus::Submitted,
-                    'current_level' => LetterStatus::Submitted->currentLevel(),
+                    'current_level' => LetterStatus::Submitted->currentLevel($service->flow),
                     'submitted_at' => now(),
                     'idempotency_key' => $key,
                 ]);
@@ -170,11 +170,16 @@ class LetterController extends Controller
     {
         Gate::authorize('act', [$letter, $action]);
 
-        $note = $request->validate([
+        $validated = $request->validate([
             'note' => [$action === 'reject' ? 'required' : 'nullable', 'string', 'max:500'],
-        ], ['note.required' => 'Tulis alasan penolakan supaya warga tahu apa yang perlu diperbaiki.'])['note'] ?? null;
+            'file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], [
+            'note.required' => 'Tulis alasan penolakan supaya warga tahu apa yang perlu diperbaiki.',
+            'file.mimes' => 'Berkas harus berupa foto (JPG/PNG/WebP) atau PDF.',
+            'file.max' => 'Ukuran berkas maksimal 5 MB.',
+        ]);
 
-        $letter = $this->workflow->apply($letter, $action, $user, $note);
+        $letter = $this->workflow->apply($letter, $action, $user, $validated['note'] ?? null, $request->file('file'));
 
         return $this->resource($letter)->additional(['message' => match ($action) {
             'reject' => "Surat {$letter->code} ditolak.",

@@ -70,6 +70,7 @@ class LetterResource extends JsonResource
                 'name' => $file->original_name,
                 'mime' => $file->mime,
                 'size_bytes' => $file->size_bytes,
+                'is_official' => $file->uploaded_by !== null && $file->uploaded_by !== $this->user_id,
                 'url' => "/api/letters/{$this->id}/attachments/{$file->id}",
             ])),
             'rating' => $this->whenLoaded('rating', fn () => $this->rating ? new RatingResource($this->rating) : null),

@@ -305,16 +305,77 @@ class LetterTest extends TestCase
             ->assertJsonPath('message', 'Surat ini sudah berstatus Dibatalkan.');
     }
 
-    public function test_only_the_applicant_can_cancel_and_only_before_it_is_final(): void
+    public function test_business_letter_sku_goes_directly_to_village_and_supports_official_scan_upload(): void
     {
-        $id = $this->submit('pengantar-rt')->json('data.id');
-        $neighbour = User::factory()->forRt($this->rt1)->create();
+        // 1. Warga mengajukan SKU HANYA dengan melampirkan Surat Pengantar RT asli yang sudah discan.
+        $id = $this->actingAs($this->warga)->post('/api/letters', [
+            'service_type_id' => ServiceType::where('slug', 'keterangan-usaha')->value('id'),
+            'attachments' => [
+                ['file' => UploadedFile::fake()->image('surat_pengantar_rt.jpg'), 'label' => 'Surat Pengantar RT'],
+            ],
+        ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'submitted')
+            ->assertJsonPath('data.current_level', 'village')
+            ->assertJsonPath('data.flow', 'village')
+            ->assertJsonPath('data.flow_label', 'Langsung Desa')
+            ->assertJsonPath('data.purpose', 'Keterangan bahwa warga memiliki usaha, mis. untuk pengajuan KUR atau izin usaha mikro.')
+            ->assertJsonPath('data.form_data', [])
+            ->assertJsonPath('data.nik_masked', null)
+            ->json('data.id');
 
-        $this->actingAs($neighbour)->postJson("/api/letters/{$id}/cancel")->assertForbidden();
-        $this->actingAs($this->ketuaRt1)->postJson("/api/letters/{$id}/cancel")->assertForbidden();
+        // 2. RT dan RW tidak memegang surat ini di antrean inbox.
+        $this->actingAs($this->ketuaRt1)->getJson('/api/letters?inbox=1')->assertJsonPath('meta.inbox', 0);
+        $this->actingAs($this->ketuaRw)->getJson('/api/letters?inbox=1')->assertJsonPath('meta.inbox', 0);
 
-        $this->actingAs($this->ketuaRt1)->postJson("/api/letters/{$id}/verify")->assertJsonPath('data.status', 'completed');
-        $this->actingAs($this->warga)->postJson("/api/letters/{$id}/cancel")->assertForbidden();
+        // RT tidak bisa menjalankan verify karena alur langsung desa.
+        $this->actingAs($this->ketuaRt1)->postJson("/api/letters/{$id}/verify")->assertStatus(409);
+
+        // 3. Operator desa melihat surat ini di inbox desa.
+        $this->actingAs($this->operator)->getJson('/api/letters?inbox=1')
+            ->assertOk()
+            ->assertJsonPath('meta.inbox', 1)
+            ->assertJsonPath('data.0.id', $id);
+
+        // 4. Operator desa menerima surat (receive) dengan catatan estimasi waktu.
+        $this->actingAs($this->operator)->postJson("/api/letters/{$id}/receive", [
+            'note' => 'Surat diterima, estimasi selesai 1 hari kerja.',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'village_received')
+            ->assertJsonPath('data.current_level', 'village');
+
+        // 5. Operator desa menandai siap diambil (ready) sekaligus mengunggah berkas scan SKU resmi yang telah ditandatangani.
+        $officialFile = UploadedFile::fake()->create('SKU-Resmi.pdf', 200, 'application/pdf');
+        $this->actingAs($this->operator)->post("/api/letters/{$id}/ready", [
+            'note' => 'Surat sudah selesai dan berkas scan dilampirkan.',
+            'file' => $officialFile,
+        ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'ready_for_pickup')
+            ->assertJsonPath('data.current_level', 'village')
+            ->assertJsonPath('data.attachments.1.name', 'SKU-Resmi.pdf')
+            ->assertJsonPath('data.attachments.1.is_official', true);
+
+        // 6. Warga melihat status siap diambil dan berkas resmi untuk diunduh.
+        $response = $this->actingAs($this->warga)->getJson("/api/letters/{$id}")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'ready_for_pickup')
+            ->assertJsonPath('data.attachments.0.is_official', false)
+            ->assertJsonPath('data.attachments.1.is_official', true);
+
+        $officialAttachmentId = $response->json('data.attachments.1.id');
+
+        // Warga dapat mengunduh berkas surat resmi tersebut.
+        $this->actingAs($this->warga)->get("/api/letters/{$id}/attachments/{$officialAttachmentId}")
+            ->assertOk();
+
+        // 7. Operator desa menandai sudah diambil (pickup).
+        $this->actingAs($this->operator)->postJson("/api/letters/{$id}/pickup")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.current_level', null);
+
         $this->assertSame(LetterStatus::Completed, LetterRequest::findOrFail($id)->status);
     }
 

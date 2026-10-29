@@ -22,6 +22,7 @@ const flowOptions = [
   { value: 'rt', label: 'Sampai RT' },
   { value: 'rt_rw', label: 'RT → RW' },
   { value: 'rt_rw_village', label: 'RT → RW → Desa' },
+  { value: 'village', label: 'Langsung Desa' },
 ]
 const typeOptions = [
   { value: 'text', label: 'Teks singkat' },

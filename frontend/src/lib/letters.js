@@ -41,10 +41,10 @@ export const actionText = {
     description: 'Tandai surat ini sedang diproses di sistem surat desa.',
   },
   ready: {
-    button: 'Siap Diambil',
+    button: 'Siap Diambil / Diunduh',
     icon: 'ticket',
-    title: 'Tandai Siap Diambil',
-    description: 'Warga akan melihat bahwa suratnya bisa diambil di kantor desa.',
+    title: 'Tandai Siap Diambil / Diunduh',
+    description: 'Beri tahu warga bahwa surat sudah selesai dan unggah berkas scan surat resmi (opsional).',
   },
   pickup: {
     button: 'Sudah Diambil',

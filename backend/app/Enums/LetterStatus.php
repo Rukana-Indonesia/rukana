@@ -39,10 +39,10 @@ enum LetterStatus: string
     }
 
     /** Tingkat yang harus bertindak pada status ini; null bila sudah final. */
-    public function currentLevel(): ?Level
+    public function currentLevel(?LetterFlow $flow = null): ?Level
     {
         return match ($this) {
-            self::Submitted => Level::Rt,
+            self::Submitted => $flow === LetterFlow::Village ? Level::Village : Level::Rt,
             self::RtVerified => Level::Rw,
             self::RwApproved, self::VillageReceived, self::ReadyForPickup => Level::Village,
             self::Completed, self::Rejected, self::Cancelled => null,

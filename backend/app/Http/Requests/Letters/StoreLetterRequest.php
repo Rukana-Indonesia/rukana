@@ -34,11 +34,11 @@ class StoreLetterRequest extends FormRequest
                 ->where('village_id', $this->user()->village_id)
                 ->where('is_active', true)
                 ->whereNull('deleted_at')],
-            'purpose' => ['required', 'string', 'max:500'],
+            'purpose' => [$service?->slug === 'keterangan-usaha' ? 'nullable' : 'required', 'string', 'max:500'],
             'nik' => $service?->requires_nik ? ['required', 'digits:16'] : ['exclude'],
             'form_data' => ['nullable', 'array'],
             ...$this->formDataRules($service),
-            'attachments' => ['nullable', 'array', 'max:'.self::MAX_ATTACHMENTS],
+            'attachments' => [$service?->slug === 'keterangan-usaha' ? 'required' : 'nullable', 'array', $service?->slug === 'keterangan-usaha' ? 'min:1' : 'nullable', 'max:'.self::MAX_ATTACHMENTS],
             'attachments.*.file' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:'.self::MAX_ATTACHMENT_KB],
             'attachments.*.label' => ['nullable', 'string', Rule::in($service?->requirements ?? [])],
             'idempotency_key' => ['nullable', 'string', 'max:64'],
@@ -61,6 +61,8 @@ class StoreLetterRequest extends FormRequest
         return [
             'service_type_id.exists' => 'Layanan ini tidak ditemukan atau sedang tidak dibuka.',
             'nik.digits' => 'NIK harus 16 digit angka sesuai KTP.',
+            'attachments.required' => 'Unggah scan atau foto Surat Pengantar RT asli.',
+            'attachments.min' => 'Unggah scan atau foto Surat Pengantar RT asli.',
             'attachments.*.file.mimes' => 'Lampiran harus berupa foto (JPG/PNG/WebP) atau PDF.',
             'attachments.*.file.max' => 'Ukuran lampiran maksimal 5 MB per berkas.',
         ];

@@ -6,12 +6,16 @@ use App\Enums\LetterAction;
 use App\Enums\LetterFlow;
 use App\Enums\LetterStatus;
 use App\Enums\Level;
+use App\Models\LetterAttachment;
 use App\Models\LetterRequest;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Notifications\Notifier;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Throwable;
 
 /**
  * Mesin status surat pengantar (lihat docs/database-schema.md bagian 4). Semua
@@ -39,7 +43,16 @@ class LetterWorkflow
     public function levelFor(string $action, LetterRequest $letter): ?Level
     {
         if ($action === 'reject') {
-            return $letter->status->currentLevel();
+            return $letter->status->currentLevel($letter->flow);
+        }
+
+        if ($letter->flow === LetterFlow::Village) {
+            return match ($action) {
+                'receive' => $letter->status === LetterStatus::Submitted ? Level::Village : null,
+                'ready' => $letter->status === LetterStatus::VillageReceived ? Level::Village : null,
+                'pickup' => $letter->status === LetterStatus::ReadyForPickup ? Level::Village : null,
+                default => null,
+            };
         }
 
         [$from, $level] = self::TRANSITIONS[$action] ?? [null, null];
@@ -64,42 +77,66 @@ class LetterWorkflow
      * dicek ulang di dalam kunci baris supaya dua pengurus yang menekan tombol
      * bersamaan tidak membuat langkah ganda.
      */
-    public function apply(LetterRequest $letter, string $action, User $actor, ?string $note = null): LetterRequest
+    public function apply(LetterRequest $letter, string $action, User $actor, ?string $note = null, ?UploadedFile $file = null): LetterRequest
     {
-        return DB::transaction(function () use ($letter, $action, $actor, $note) {
-            $letter = LetterRequest::lockForUpdate()->findOrFail($letter->id);
-            $level = $this->levelFor($action, $letter);
+        $stored = null;
 
-            if ($level === null || $level !== $actor->role->actingLevel()) {
-                throw new ConflictHttpException("Surat ini sudah berstatus {$letter->status->label()}.");
+        try {
+            return DB::transaction(function () use ($letter, $action, $actor, $note, $file, &$stored) {
+                $letter = LetterRequest::lockForUpdate()->findOrFail($letter->id);
+                $level = $this->levelFor($action, $letter);
+
+                if ($level === null || $level !== $actor->role->actingLevel()) {
+                    throw new ConflictHttpException("Surat ini sudah berstatus {$letter->status->label()}.");
+                }
+
+                $from = $letter->status;
+                $to = $action === 'reject' ? LetterStatus::Rejected : $this->next($from, $letter->flow);
+                $stepAction = $action === 'reject' ? LetterAction::Rejected : ($action === 'receive' && $letter->flow === LetterFlow::Village ? LetterAction::Received : self::TRANSITIONS[$action][2]);
+
+                $letter->fill([
+                    'status' => $to,
+                    'current_level' => $to->currentLevel($letter->flow),
+                    'completed_at' => $to === LetterStatus::Completed ? now() : null,
+                    'rejected_level' => $to === LetterStatus::Rejected ? $level : null,
+                    'rejection_reason' => $to === LetterStatus::Rejected ? $note : null,
+                ])->save();
+
+                $letter->steps()->create([
+                    'level' => $level,
+                    'action' => $stepAction,
+                    'from_status' => $from,
+                    'to_status' => $to,
+                    'actor_id' => $actor->id,
+                    'note' => $note,
+                ]);
+
+                if ($file) {
+                    $path = $file->store("letters/{$letter->id}", 'local');
+                    $stored = $path;
+
+                    $letter->attachments()->create([
+                        'uploaded_by' => $actor->id,
+                        'requirement_label' => 'Dokumen Surat Resmi',
+                        'disk' => 'local',
+                        'path' => $path,
+                        'original_name' => mb_substr($file->getClientOriginalName(), 0, 255),
+                        'mime' => $file->getMimeType(),
+                        'size_bytes' => $file->getSize(),
+                    ]);
+                }
+
+                Audit::log('letter.status_changed', $letter, ['from' => $from->value, 'to' => $to->value], $actor);
+                app(Notifier::class)->letterChanged($letter);
+
+                return $letter;
+            });
+        } catch (Throwable $e) {
+            if ($stored) {
+                Storage::disk('local')->delete($stored);
             }
-
-            $from = $letter->status;
-            $to = $action === 'reject' ? LetterStatus::Rejected : $this->next($from, $letter->flow);
-            $stepAction = $action === 'reject' ? LetterAction::Rejected : self::TRANSITIONS[$action][2];
-
-            $letter->fill([
-                'status' => $to,
-                'current_level' => $to->currentLevel(),
-                'completed_at' => $to === LetterStatus::Completed ? now() : null,
-                'rejected_level' => $to === LetterStatus::Rejected ? $level : null,
-                'rejection_reason' => $to === LetterStatus::Rejected ? $note : null,
-            ])->save();
-
-            $letter->steps()->create([
-                'level' => $level,
-                'action' => $stepAction,
-                'from_status' => $from,
-                'to_status' => $to,
-                'actor_id' => $actor->id,
-                'note' => $note,
-            ]);
-
-            Audit::log('letter.status_changed', $letter, ['from' => $from->value, 'to' => $to->value], $actor);
-            app(Notifier::class)->letterChanged($letter);
-
-            return $letter;
-        });
+            throw $e;
+        }
     }
 
     /**
